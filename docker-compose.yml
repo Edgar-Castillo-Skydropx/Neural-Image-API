@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # Servicio de la API
@@ -23,7 +23,7 @@ services:
 
   # Servicio de base de datos MongoDB
   mongodb:
-    image: mongo:latest
+    image: mongo:4.4.6-bionic
     container_name: neural-image-mongodb
     restart: unless-stopped
     environment:

@@ -4,9 +4,10 @@
   "description": "API de reconocimiento de imágenes con red neuronal implementada desde cero",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "ts-node esbuild.config.ts",
+    "dev": "ts-node esbuild.config.ts --watch",
+    "prod:watch": "node --watch build/index.js",
+    "prod": "node build/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -19,21 +20,28 @@
   "license": "ISC",
   "dependencies": {
     "cors": "2.8.5",
+    "dotenv": "16.5.0",
     "express": "5.1.0",
     "mongoose": "8.5.0",
-    "dotenv": "16.5.0",
     "multer": "2.0.0"
   },
   "devDependencies": {
+    "@es-exec/esbuild-plugin-serve": "0.0.5",
     "@types/cors": "2.8.18",
     "@types/dotenv": "8.2.3",
     "@types/express": "5.0.2",
     "@types/mongoose": "5.11.97",
     "@types/multer": "1.4.12",
     "@types/node": "22.15.21",
+    "esbuild": "0.21.5",
+    "esbuild-copy-static-files": "0.1.0",
+    "esbuild-plugin-alias": "0.2.1",
+    "esbuild-plugin-handlebars": "1.0.3",
+    "fast-glob": "3.3.3",
     "nodemon": "3.1.10",
     "ts-node": "10.9.2",
     "ts-node-dev": "2.0.0",
+    "tsconfig-paths": "4.2.0",
     "typescript": "5.8.3"
   }
 }

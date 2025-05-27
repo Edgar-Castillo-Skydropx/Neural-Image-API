@@ -1,6 +1,6 @@
 import express, { Application } from "express";
 import cors from "cors";
-import dotenv from "dotenv/";
+import dotenv from "dotenv";
 import { imageRoutes } from "@/api/routes/imageRoutes";
 import { trainingRoutes } from "@/api/routes/trainingRoutes";
 import { errorHandler } from "@/api/middlewares/errorHandler";

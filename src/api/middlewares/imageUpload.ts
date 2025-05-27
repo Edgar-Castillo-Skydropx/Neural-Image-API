@@ -1,26 +1,30 @@
-import multer from 'multer';
-import path from 'path';
-import { Request, Response, NextFunction } from 'express';
+import multer from "multer";
+import path from "path";
+import { Request, Response, NextFunction } from "express";
 
 // Configuración de almacenamiento para multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../../uploads'));
+    cb(null, path.join(__dirname, "../uploads"));
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+  },
 });
 
 // Filtro para validar tipos de archivos
-const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (
+  req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
   // Aceptar solo imágenes
-  if (file.mimetype.startsWith('image/')) {
+  if (file.mimetype.startsWith("image/")) {
     cb(null, true);
   } else {
-    cb(new Error('El archivo debe ser una imagen válida'));
+    cb(new Error("El archivo debe ser una imagen válida"));
   }
 };
 
@@ -33,7 +37,7 @@ const limits = {
 export const upload = multer({
   storage,
   fileFilter,
-  limits
+  limits,
 });
 
 /**
@@ -46,18 +50,19 @@ export const handleMulterError = (
   next: NextFunction
 ): void => {
   if (err instanceof multer.MulterError) {
-    let message = 'Error al subir archivo';
-    
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      message = 'El archivo excede el tamaño máximo permitido (5MB)';
+    let message = "Error al subir archivo";
+
+    if (err.code === "LIMIT_FILE_SIZE") {
+      message = "El archivo excede el tamaño máximo permitido (5MB)";
     }
-    
+
     res.status(400).json({
       success: false,
       error: {
         message,
-        code: 400
-      }
+        code: 400,
+        err,
+      },
     });
   } else if (err) {
     next(err);
@@ -78,12 +83,12 @@ export const validateImageUpload = (
     res.status(400).json({
       success: false,
       error: {
-        message: 'No se ha proporcionado ninguna imagen',
-        code: 400
-      }
+        message: "No se ha proporcionado ninguna imagen",
+        code: 400,
+      },
     });
     return;
   }
-  
+
   next();
 };
