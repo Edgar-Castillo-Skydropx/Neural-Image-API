@@ -1,7 +1,5 @@
-import { Request, Response } from 'express';
-import path from 'path';
-import fs from 'fs';
-import { ImageService } from '@/api/services/ImageService';
+import { Request, Response } from "express";
+import { ImageService } from "@/api/services/ImageService";
 
 /**
  * Controlador para gestionar las operaciones relacionadas con imágenes
@@ -27,34 +25,37 @@ export class ImageController {
         res.status(400).json({
           success: false,
           error: {
-            message: 'No se ha proporcionado ninguna imagen',
-            code: 400
-          }
+            message: "No se ha proporcionado ninguna imagen",
+            code: 400,
+          },
         });
         return;
       }
 
       const imagePath = req.file.path;
-      
+
       // Procesar y clasificar la imagen
       const result = await this.imageService.classifyImage(imagePath);
-      
+
       res.status(200).json({
         success: true,
         data: {
           classification: result.classification,
           confidence: result.confidence,
-          processingTime: result.processingTime
-        }
+          processingTime: result.processingTime,
+        },
       });
     } catch (error) {
-      console.error('Error al clasificar imagen:', error);
+      console.error("Error al clasificar imagen:", error);
       res.status(500).json({
         success: false,
         error: {
-          message: error instanceof Error ? error.message : 'Error al procesar la imagen',
-          code: 500
-        }
+          message:
+            error instanceof Error
+              ? error.message
+              : "Error al procesar la imagen",
+          code: 500,
+        },
       });
     }
   };
@@ -67,24 +68,27 @@ export class ImageController {
   public getStatus = async (req: Request, res: Response): Promise<void> => {
     try {
       const status = await this.imageService.getServiceStatus();
-      
+
       res.status(200).json({
         success: true,
         data: {
-          status: status.isActive ? 'active' : 'inactive',
+          status: status.isActive ? "active" : "inactive",
           modelLoaded: status.modelLoaded,
           lastUpdated: status.lastUpdated,
-          version: status.version
-        }
+          version: status.version,
+        },
       });
     } catch (error) {
-      console.error('Error al obtener estado del servicio:', error);
+      console.error("Error al obtener estado del servicio:", error);
       res.status(500).json({
         success: false,
         error: {
-          message: error instanceof Error ? error.message : 'Error al obtener estado del servicio',
-          code: 500
-        }
+          message:
+            error instanceof Error
+              ? error.message
+              : "Error al obtener estado del servicio",
+          code: 500,
+        },
       });
     }
   };

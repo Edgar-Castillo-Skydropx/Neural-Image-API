@@ -4,6 +4,7 @@ import { Schema, model, Document } from "mongoose";
  * Interfaz para el documento de modelo de red neuronal en MongoDB
  */
 export interface INetworkModelDocument extends Document {
+  _id: string;
   name: string;
   description?: string;
   architecture: string;

@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import mongoose from "mongoose";
+import dotenv from "dotenv";
 
 // Cargar variables de entorno
 dotenv.config();
@@ -31,21 +31,22 @@ export class Database {
    */
   public async connect(): Promise<void> {
     if (this.isConnected) {
-      console.log('Ya existe una conexión a la base de datos');
+      console.log("Ya existe una conexión a la base de datos");
       return;
     }
 
     try {
-      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/neural-image-api';
-      
+      const mongoUri =
+        process.env.MONGODB_URI || "mongodb://localhost:27017/neural-image-api";
+
       await mongoose.connect(mongoUri, {
         // Opciones de conexión
       });
 
       this.isConnected = true;
-      console.log('Conexión a MongoDB establecida correctamente');
+      console.log("Conexión a MongoDB establecida correctamente");
     } catch (error) {
-      console.error('Error al conectar a MongoDB:', error);
+      console.error("Error al conectar a MongoDB:", error);
       throw error;
     }
   }
@@ -55,16 +56,16 @@ export class Database {
    */
   public async disconnect(): Promise<void> {
     if (!this.isConnected) {
-      console.log('No hay conexión activa a la base de datos');
+      console.log("No hay conexión activa a la base de datos");
       return;
     }
 
     try {
       await mongoose.disconnect();
       this.isConnected = false;
-      console.log('Desconexión de MongoDB realizada correctamente');
+      console.log("Desconexión de MongoDB realizada correctamente");
     } catch (error) {
-      console.error('Error al desconectar de MongoDB:', error);
+      console.error("Error al desconectar de MongoDB:", error);
       throw error;
     }
   }

@@ -1,9 +1,7 @@
-import { BaseModel } from './BaseModel';
-import { ILayer } from '../../core/interfaces/ILayer';
-import { IOptimizer } from '../../core/interfaces/IOptimizer';
-import { LayerFactory, LayerType } from '../layers/LayerFactory';
-import { SGDOptimizer } from '../optimizers/SGDOptimizer';
-import { ActivationType } from '../../core/types/ActivationType';
+import { BaseModel } from "./BaseModel";
+import { IOptimizer } from "../../core/interfaces/IOptimizer";
+import { LayerFactory, LayerType } from "../layers/LayerFactory";
+import { SGDOptimizer } from "../optimizers/SGDOptimizer";
 
 /**
  * Implementación de un modelo secuencial de red neuronal
@@ -46,9 +44,9 @@ export class SequentialModel extends BaseModel {
    * @param batchSize Tamaño del lote para entrenamiento
    */
   public async train(
-    inputs: number[][][], 
-    targets: number[][][], 
-    epochs: number, 
+    inputs: number[][][],
+    targets: number[][][],
+    epochs: number,
     batchSize: number
   ): Promise<Record<string, number[]>> {
     if (!this.isInitialized) {
@@ -67,49 +65,56 @@ export class SequentialModel extends BaseModel {
     for (let epoch = 0; epoch < epochs; epoch++) {
       let totalLoss = 0;
       let correctPredictions = 0;
-      
+
       // Procesar cada muestra de entrenamiento
       for (let i = 0; i < inputs.length; i++) {
         const input = inputs[i];
         const target = targets[i];
-        
+
         // Propagación hacia adelante
         let output = input;
         for (const layer of this.layerInstances) {
           output = layer.forward(output);
         }
-        
+
         // Calcular pérdida (simplificado)
         const loss = this.calculateLoss(output, target);
         totalLoss += loss;
-        
+
         // Verificar predicción (simplificado)
         if (this.isPredictionCorrect(output, target)) {
           correctPredictions++;
         }
-        
+
         // Retropropagación
         let gradient = this.calculateGradient(output, target);
-        
+
         // Actualizar pesos en orden inverso
         for (let j = this.layerInstances.length - 1; j >= 0; j--) {
-          gradient = this.layerInstances[j].backward(gradient, this.optimizer.learningRate);
+          gradient = this.layerInstances[j].backward(
+            gradient,
+            this.optimizer.learningRate
+          );
         }
       }
-      
+
       // Calcular métricas de la época
       const accuracy = correctPredictions / inputs.length;
       const averageLoss = totalLoss / inputs.length;
-      
+
       accuracyHistory.push(accuracy);
       lossHistory.push(averageLoss);
-      
-      console.log(`Época ${epoch + 1}/${epochs} - Pérdida: ${averageLoss.toFixed(4)} - Precisión: ${(accuracy * 100).toFixed(2)}%`);
+
+      console.log(
+        `Época ${epoch + 1}/${epochs} - Pérdida: ${averageLoss.toFixed(
+          4
+        )} - Precisión: ${(accuracy * 100).toFixed(2)}%`
+      );
     }
 
     return {
       accuracy: accuracyHistory,
-      loss: lossHistory
+      loss: lossHistory,
     };
   }
 
@@ -119,7 +124,7 @@ export class SequentialModel extends BaseModel {
    * @param targets Salidas esperadas correspondientes
    */
   public evaluate(
-    inputs: number[][][], 
+    inputs: number[][][],
     targets: number[][][]
   ): Record<string, number> {
     if (!this.isInitialized) {
@@ -128,32 +133,32 @@ export class SequentialModel extends BaseModel {
 
     let totalLoss = 0;
     let correctPredictions = 0;
-    
+
     // Evaluar cada muestra
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
       const target = targets[i];
-      
+
       // Propagación hacia adelante
       const output = this.predict(input);
-      
+
       // Calcular pérdida
       const loss = this.calculateLoss(output, target);
       totalLoss += loss;
-      
+
       // Verificar predicción
       if (this.isPredictionCorrect(output, target)) {
         correctPredictions++;
       }
     }
-    
+
     // Calcular métricas finales
     const accuracy = correctPredictions / inputs.length;
     const averageLoss = totalLoss / inputs.length;
-    
+
     return {
       accuracy,
-      loss: averageLoss
+      loss: averageLoss,
     };
   }
 
@@ -166,7 +171,7 @@ export class SequentialModel extends BaseModel {
     // Implementación simplificada de error cuadrático medio
     let sum = 0;
     let count = 0;
-    
+
     for (let i = 0; i < output.length; i++) {
       for (let j = 0; j < output[i].length; j++) {
         const diff = output[i][j] - target[i][j];
@@ -174,7 +179,7 @@ export class SequentialModel extends BaseModel {
         count++;
       }
     }
-    
+
     return sum / count;
   }
 
@@ -183,18 +188,23 @@ export class SequentialModel extends BaseModel {
    * @param output Salida del modelo
    * @param target Objetivo esperado
    */
-  private calculateGradient(output: number[][], target: number[][]): number[][] {
+  private calculateGradient(
+    output: number[][],
+    target: number[][]
+  ): number[][] {
     // Implementación simplificada de gradiente para MSE
     const gradient: number[][] = [];
-    
+
     for (let i = 0; i < output.length; i++) {
       gradient[i] = [];
       for (let j = 0; j < output[i].length; j++) {
         // Derivada de MSE: 2 * (output - target) / n
-        gradient[i][j] = 2 * (output[i][j] - target[i][j]) / (output.length * output[i].length);
+        gradient[i][j] =
+          (2 * (output[i][j] - target[i][j])) /
+          (output.length * output[i].length);
       }
     }
-    
+
     return gradient;
   }
 
@@ -206,32 +216,32 @@ export class SequentialModel extends BaseModel {
   private isPredictionCorrect(output: number[][], target: number[][]): boolean {
     // Implementación simplificada para clasificación
     // En una implementación real, esto dependería del tipo de problema
-    
+
     // Para clasificación, podríamos comparar el índice del valor máximo
     const getMaxIndex = (arr: number[]): number => {
       let maxIndex = 0;
       let maxValue = arr[0];
-      
+
       for (let i = 1; i < arr.length; i++) {
         if (arr[i] > maxValue) {
           maxValue = arr[i];
           maxIndex = i;
         }
       }
-      
+
       return maxIndex;
     };
-    
+
     // Comparar para cada muestra en el batch
     for (let i = 0; i < output.length; i++) {
       const outputMaxIndex = getMaxIndex(output[i]);
       const targetMaxIndex = getMaxIndex(target[i]);
-      
+
       if (outputMaxIndex !== targetMaxIndex) {
         return false;
       }
     }
-    
+
     return true;
   }
 }
