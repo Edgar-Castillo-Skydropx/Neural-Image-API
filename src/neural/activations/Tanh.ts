@@ -1,4 +1,4 @@
-import { BaseActivation } from './BaseActivation';
+import { BaseActivation } from "@/neural/activations/BaseActivation";
 
 /**
  * Implementación de la función de activación Tanh (Tangente Hiperbólica)
@@ -9,7 +9,7 @@ export class Tanh extends BaseActivation {
    * Constructor de la función Tanh
    */
   constructor() {
-    super('tanh');
+    super("tanh");
   }
 
   /**

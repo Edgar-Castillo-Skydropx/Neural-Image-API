@@ -1,8 +1,8 @@
-import { ActivationType } from '../../core/types/ActivationType';
-import { IActivation } from '../../core/interfaces/IActivation';
-import { Sigmoid } from './Sigmoid';
-import { ReLU } from './ReLU';
-import { Tanh } from './Tanh';
+import { ActivationType } from "@/core/types/ActivationType";
+import { IActivation } from "@/core/interfaces/IActivation";
+import { Sigmoid } from "@/neural/activations/Sigmoid";
+import { ReLU } from "@/neural/activations/ReLU";
+import { Tanh } from "@/neural/activations/Tanh";
 
 /**
  * Factory para crear funciones de activación
@@ -23,9 +23,9 @@ export class ActivationFactory {
       case ActivationType.TANH:
         return new Tanh();
       case ActivationType.SOFTMAX:
-        throw new Error('Softmax activation not implemented yet');
+        throw new Error("Softmax activation not implemented yet");
       case ActivationType.LINEAR:
-        throw new Error('Linear activation not implemented yet');
+        throw new Error("Linear activation not implemented yet");
       default:
         throw new Error(`Unknown activation type: ${type}`);
     }

@@ -1,4 +1,4 @@
-import { BaseLayer } from './BaseLayer';
+import { BaseLayer } from "@/neural/layers/BaseLayer";
 
 /**
  * Implementación de una capa de entrada para la red neuronal
@@ -10,17 +10,8 @@ export class InputLayer extends BaseLayer {
    * @param id Identificador único de la capa
    * @param inputShape Forma de entrada [filas, columnas, canales]
    */
-  constructor(
-    id: string,
-    inputShape: number[]
-  ) {
-    super(
-      id,
-      'input',
-      inputShape,
-      inputShape,
-      undefined
-    );
+  constructor(id: string, inputShape: number[]) {
+    super(id, "input", inputShape, inputShape, undefined);
   }
 
   /**
@@ -45,7 +36,10 @@ export class InputLayer extends BaseLayer {
    * @param learningRate Tasa de aprendizaje (no utilizada)
    * @returns El mismo gradiente de salida
    */
-  public backward(outputGradient: number[][], learningRate: number): number[][] {
+  public backward(
+    outputGradient: number[][],
+    learningRate: number
+  ): number[][] {
     return outputGradient;
   }
 

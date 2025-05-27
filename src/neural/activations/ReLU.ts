@@ -1,4 +1,4 @@
-import { BaseActivation } from './BaseActivation';
+import { BaseActivation } from "@/neural/activations/BaseActivation";
 
 /**
  * Implementación de la función de activación ReLU (Rectified Linear Unit)
@@ -9,7 +9,7 @@ export class ReLU extends BaseActivation {
    * Constructor de la función ReLU
    */
   constructor() {
-    super('relu');
+    super("relu");
   }
 
   /**

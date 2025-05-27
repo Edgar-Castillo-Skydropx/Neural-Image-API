@@ -1,4 +1,4 @@
-import { BaseOptimizer } from './BaseOptimizer';
+import { BaseOptimizer } from "@/neural/optimizers/BaseOptimizer";
 
 /**
  * Implementación del optimizador SGD (Stochastic Gradient Descent)
@@ -10,7 +10,7 @@ export class SGDOptimizer extends BaseOptimizer {
    * @param learningRate Tasa de aprendizaje
    */
   constructor(learningRate: number = 0.01) {
-    super('sgd', learningRate);
+    super("sgd", learningRate);
   }
 
   /**
@@ -21,15 +21,16 @@ export class SGDOptimizer extends BaseOptimizer {
    */
   public updateWeights(weights: number[][], gradients: number[][]): number[][] {
     const updatedWeights: number[][] = [];
-    
+
     for (let i = 0; i < weights.length; i++) {
       updatedWeights[i] = [];
       for (let j = 0; j < weights[i].length; j++) {
         // w = w - lr * gradient
-        updatedWeights[i][j] = weights[i][j] - this.learningRate * gradients[i][j];
+        updatedWeights[i][j] =
+          weights[i][j] - this.learningRate * gradients[i][j];
       }
     }
-    
+
     return updatedWeights;
   }
 }

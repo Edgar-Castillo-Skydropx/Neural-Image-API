@@ -1,4 +1,4 @@
-import { IMatrix } from '../core/interfaces/IMatrix';
+import { IMatrix } from "@/core/interfaces/IMatrix";
 
 /**
  * Implementación de la interfaz IMatrix para operaciones matriciales
@@ -16,17 +16,19 @@ export class Matrix implements IMatrix {
    * @param initializer Función inicializadora opcional
    */
   constructor(
-    rows: number, 
-    cols: number, 
+    rows: number,
+    cols: number,
     initializer?: (row: number, col: number) => number
   ) {
     this.rows = rows;
     this.cols = cols;
-    this.data = Array(rows).fill(0).map((_, i) => 
-      Array(cols).fill(0).map((_, j) => 
-        initializer ? initializer(i, j) : 0
-      )
-    );
+    this.data = Array(rows)
+      .fill(0)
+      .map((_, i) =>
+        Array(cols)
+          .fill(0)
+          .map((_, j) => (initializer ? initializer(i, j) : 0))
+      );
   }
 
   /**
@@ -35,26 +37,26 @@ export class Matrix implements IMatrix {
    */
   public static fromArray(array: number[][]): Matrix {
     if (array.length === 0 || array[0].length === 0) {
-      throw new Error('Array cannot be empty');
+      throw new Error("Array cannot be empty");
     }
-    
+
     const rows = array.length;
     const cols = array[0].length;
-    
+
     // Verificar que todas las filas tengan la misma longitud
     for (let i = 0; i < rows; i++) {
       if (array[i].length !== cols) {
-        throw new Error('All rows must have the same length');
+        throw new Error("All rows must have the same length");
       }
     }
-    
+
     const matrix = new Matrix(rows, cols);
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {
         matrix.data[i][j] = array[i][j];
       }
     }
-    
+
     return matrix;
   }
 
@@ -66,9 +68,9 @@ export class Matrix implements IMatrix {
    * @param max Valor máximo (por defecto 1)
    */
   public static random(
-    rows: number, 
-    cols: number, 
-    min: number = -1, 
+    rows: number,
+    cols: number,
+    min: number = -1,
     max: number = 1
   ): Matrix {
     return new Matrix(rows, cols, () => min + Math.random() * (max - min));
@@ -97,7 +99,7 @@ export class Matrix implements IMatrix {
    * @param size Tamaño de la matriz (filas = columnas)
    */
   public static identity(size: number): Matrix {
-    return new Matrix(size, size, (i, j) => i === j ? 1 : 0);
+    return new Matrix(size, size, (i, j) => (i === j ? 1 : 0));
   }
 
   /**
@@ -140,14 +142,14 @@ export class Matrix implements IMatrix {
    */
   public add(matrix: IMatrix): Matrix {
     this.validateDimensions(matrix);
-    
+
     const result = new Matrix(this.rows, this.cols);
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
         result.data[i][j] = this.data[i][j] + matrix.data[i][j];
       }
     }
-    
+
     return result;
   }
 
@@ -157,14 +159,14 @@ export class Matrix implements IMatrix {
    */
   public subtract(matrix: IMatrix): Matrix {
     this.validateDimensions(matrix);
-    
+
     const result = new Matrix(this.rows, this.cols);
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
         result.data[i][j] = this.data[i][j] - matrix.data[i][j];
       }
     }
-    
+
     return result;
   }
 
@@ -174,9 +176,11 @@ export class Matrix implements IMatrix {
    */
   public multiply(matrix: IMatrix): Matrix {
     if (this.cols !== matrix.rows) {
-      throw new Error(`Cannot multiply matrices of dimensions ${this.rows}x${this.cols} and ${matrix.rows}x${matrix.cols}`);
+      throw new Error(
+        `Cannot multiply matrices of dimensions ${this.rows}x${this.cols} and ${matrix.rows}x${matrix.cols}`
+      );
     }
-    
+
     const result = new Matrix(this.rows, matrix.cols);
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < matrix.cols; j++) {
@@ -187,7 +191,7 @@ export class Matrix implements IMatrix {
         result.data[i][j] = sum;
       }
     }
-    
+
     return result;
   }
 
@@ -197,14 +201,14 @@ export class Matrix implements IMatrix {
    */
   public hadamardProduct(matrix: IMatrix): Matrix {
     this.validateDimensions(matrix);
-    
+
     const result = new Matrix(this.rows, this.cols);
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
         result.data[i][j] = this.data[i][j] * matrix.data[i][j];
       }
     }
-    
+
     return result;
   }
 
@@ -218,7 +222,7 @@ export class Matrix implements IMatrix {
         result.data[j][i] = this.data[i][j];
       }
     }
-    
+
     return result;
   }
 
@@ -233,7 +237,7 @@ export class Matrix implements IMatrix {
         result.data[i][j] = this.data[i][j] * scalar;
       }
     }
-    
+
     return result;
   }
 
@@ -248,7 +252,7 @@ export class Matrix implements IMatrix {
         result.data[i][j] = this.data[i][j] + scalar;
       }
     }
-    
+
     return result;
   }
 
@@ -256,14 +260,16 @@ export class Matrix implements IMatrix {
    * Aplica una función a cada elemento de la matriz
    * @param callback Función a aplicar
    */
-  public map(callback: (value: number, row: number, col: number) => number): Matrix {
+  public map(
+    callback: (value: number, row: number, col: number) => number
+  ): Matrix {
     const result = new Matrix(this.rows, this.cols);
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
         result.data[i][j] = callback(this.data[i][j], i, j);
       }
     }
-    
+
     return result;
   }
 
@@ -271,7 +277,9 @@ export class Matrix implements IMatrix {
    * Ejecuta una función para cada elemento de la matriz
    * @param callback Función a ejecutar
    */
-  public forEach(callback: (value: number, row: number, col: number) => void): void {
+  public forEach(
+    callback: (value: number, row: number, col: number) => void
+  ): void {
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
         callback(this.data[i][j], i, j);
@@ -283,14 +291,14 @@ export class Matrix implements IMatrix {
    * Convierte la matriz a un array bidimensional
    */
   public toArray(): number[][] {
-    return this.data.map(row => [...row]);
+    return this.data.map((row) => [...row]);
   }
 
   /**
    * Convierte la matriz a una cadena de texto
    */
   public toString(): string {
-    return this.data.map(row => row.join('\t')).join('\n');
+    return this.data.map((row) => row.join("\t")).join("\n");
   }
 
   /**
@@ -300,7 +308,9 @@ export class Matrix implements IMatrix {
    */
   private validateIndices(row: number, col: number): void {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) {
-      throw new Error(`Index out of bounds: (${row}, ${col}) for matrix of size ${this.rows}x${this.cols}`);
+      throw new Error(
+        `Index out of bounds: (${row}, ${col}) for matrix of size ${this.rows}x${this.cols}`
+      );
     }
   }
 
@@ -310,7 +320,9 @@ export class Matrix implements IMatrix {
    */
   private validateDimensions(matrix: IMatrix): void {
     if (this.rows !== matrix.rows || this.cols !== matrix.cols) {
-      throw new Error(`Matrix dimensions do not match: ${this.rows}x${this.cols} and ${matrix.rows}x${matrix.cols}`);
+      throw new Error(
+        `Matrix dimensions do not match: ${this.rows}x${this.cols} and ${matrix.rows}x${matrix.cols}`
+      );
     }
   }
 }

@@ -1,4 +1,4 @@
-import { IActivation } from '../../core/interfaces/IActivation';
+import { IActivation } from "@/core/interfaces/IActivation";
 
 /**
  * Clase base abstracta para todas las funciones de activación
@@ -34,7 +34,9 @@ export abstract class BaseActivation implements IActivation {
   public forwardMatrix(matrix: number[][]): number[][] {
     const rows = matrix.length;
     const cols = matrix[0].length;
-    const result: number[][] = Array(rows).fill(0).map(() => Array(cols).fill(0));
+    const result: number[][] = Array(rows)
+      .fill(0)
+      .map(() => Array(cols).fill(0));
 
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {
@@ -52,7 +54,9 @@ export abstract class BaseActivation implements IActivation {
   public backwardMatrix(matrix: number[][]): number[][] {
     const rows = matrix.length;
     const cols = matrix[0].length;
-    const result: number[][] = Array(rows).fill(0).map(() => Array(cols).fill(0));
+    const result: number[][] = Array(rows)
+      .fill(0)
+      .map(() => Array(cols).fill(0));
 
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {

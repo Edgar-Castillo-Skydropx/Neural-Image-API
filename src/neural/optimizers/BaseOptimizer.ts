@@ -1,4 +1,4 @@
-import { IOptimizer } from '../../core/interfaces/IOptimizer';
+import { IOptimizer } from "@/core/interfaces/IOptimizer";
 
 /**
  * Clase base abstracta para todos los optimizadores
@@ -23,7 +23,10 @@ export abstract class BaseOptimizer implements IOptimizer {
    * @param weights Pesos actuales
    * @param gradients Gradientes calculados
    */
-  public abstract updateWeights(weights: number[][], gradients: number[][]): number[][];
+  public abstract updateWeights(
+    weights: number[][],
+    gradients: number[][]
+  ): number[][];
 
   /**
    * Establece una nueva tasa de aprendizaje
@@ -39,7 +42,7 @@ export abstract class BaseOptimizer implements IOptimizer {
   public toJSON(): Record<string, any> {
     return {
       name: this.name,
-      learningRate: this.learningRate
+      learningRate: this.learningRate,
     };
   }
 

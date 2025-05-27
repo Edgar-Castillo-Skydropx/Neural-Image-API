@@ -1,7 +1,7 @@
-import { ILayer } from '../../core/interfaces/ILayer';
-import { ActivationType } from '../../core/types/ActivationType';
-import { IActivation } from '../../core/interfaces/IActivation';
-import { ActivationFactory } from '../activations/ActivationFactory';
+import { ILayer } from "@/core/interfaces/ILayer";
+import { ActivationType } from "@/core/types/ActivationType";
+import { IActivation } from "@/core/interfaces/IActivation";
+import { ActivationFactory } from "@/neural/activations/ActivationFactory";
 
 /**
  * Clase base abstracta para todas las capas neuronales
@@ -33,7 +33,9 @@ export abstract class BaseLayer implements ILayer {
     this.type = type;
     this.inputShape = [...inputShape];
     this.outputShape = [...outputShape];
-    this.activation = activationType ? ActivationFactory.create(activationType) : null;
+    this.activation = activationType
+      ? ActivationFactory.create(activationType)
+      : null;
   }
 
   /**
@@ -52,7 +54,10 @@ export abstract class BaseLayer implements ILayer {
    * @param outputGradient Gradiente de salida
    * @param learningRate Tasa de aprendizaje
    */
-  public abstract backward(outputGradient: number[][], learningRate: number): number[][];
+  public abstract backward(
+    outputGradient: number[][],
+    learningRate: number
+  ): number[][];
 
   /**
    * Obtiene los pesos de la capa
@@ -75,7 +80,7 @@ export abstract class BaseLayer implements ILayer {
       inputShape: this.inputShape,
       outputShape: this.outputShape,
       activation: this.activation ? this.activation.name : null,
-      weights: this.getWeights()
+      weights: this.getWeights(),
     };
   }
 

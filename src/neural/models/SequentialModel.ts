@@ -1,7 +1,7 @@
-import { BaseModel } from "./BaseModel";
-import { IOptimizer } from "../../core/interfaces/IOptimizer";
-import { LayerFactory, LayerType } from "../layers/LayerFactory";
-import { SGDOptimizer } from "../optimizers/SGDOptimizer";
+import { BaseModel } from "@/neural/models/BaseModel";
+import { IOptimizer } from "@/core/interfaces/IOptimizer";
+import { LayerFactory, LayerType } from "@/neural/layers/LayerFactory";
+import { SGDOptimizer } from "@/neural/optimizers/SGDOptimizer";
 
 /**
  * Implementación de un modelo secuencial de red neuronal

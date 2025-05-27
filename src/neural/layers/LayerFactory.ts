@@ -1,17 +1,17 @@
-import { ILayer } from '../../core/interfaces/ILayer';
-import { InputLayer } from './InputLayer';
-import { DenseLayer } from './DenseLayer';
-import { ConvolutionalLayer } from './ConvolutionalLayer';
-import { ActivationType } from '../../core/types/ActivationType';
+import { ILayer } from "@/core/interfaces/ILayer";
+import { InputLayer } from "@/neural/layers/InputLayer";
+import { DenseLayer } from "@/neural/layers/DenseLayer";
+import { ConvolutionalLayer } from "@/neural/layers/ConvolutionalLayer";
+import { ActivationType } from "@/core/types/ActivationType";
 
 /**
  * Tipos de capas disponibles para la red neuronal
  */
 export enum LayerType {
-  INPUT = 'input',
-  DENSE = 'dense',
-  CONVOLUTIONAL = 'convolutional',
-  POOLING = 'pooling'
+  INPUT = "input",
+  DENSE = "dense",
+  CONVOLUTIONAL = "convolutional",
+  POOLING = "pooling",
 }
 
 /**
@@ -27,14 +27,11 @@ export class LayerFactory {
    */
   public static create(type: LayerType, config: Record<string, any>): ILayer {
     const id = config.id || `layer_${Date.now()}`;
-    
+
     switch (type) {
       case LayerType.INPUT:
-        return new InputLayer(
-          id,
-          config.inputShape
-        );
-        
+        return new InputLayer(id, config.inputShape);
+
       case LayerType.DENSE:
         return new DenseLayer(
           id,
@@ -42,7 +39,7 @@ export class LayerFactory {
           config.outputSize,
           config.activation || ActivationType.SIGMOID
         );
-        
+
       case LayerType.CONVOLUTIONAL:
         return new ConvolutionalLayer(
           id,
@@ -53,10 +50,10 @@ export class LayerFactory {
           config.padding || 0,
           config.activation || ActivationType.RELU
         );
-        
+
       case LayerType.POOLING:
-        throw new Error('Pooling layer not implemented yet');
-        
+        throw new Error("Pooling layer not implemented yet");
+
       default:
         throw new Error(`Unknown layer type: ${type}`);
     }

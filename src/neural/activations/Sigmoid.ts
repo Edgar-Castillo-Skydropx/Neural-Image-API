@@ -1,4 +1,4 @@
-import { BaseActivation } from './BaseActivation';
+import { BaseActivation } from "@/neural/activations/BaseActivation";
 
 /**
  * Implementación de la función de activación Sigmoid
@@ -9,7 +9,7 @@ export class Sigmoid extends BaseActivation {
    * Constructor de la función Sigmoid
    */
   constructor() {
-    super('sigmoid');
+    super("sigmoid");
   }
 
   /**
