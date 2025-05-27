@@ -1,9 +1,9 @@
-import dotenv from 'dotenv';
-import express, { Application } from 'express';
-import cors from 'cors';
-import { imageRoutes } from '@/api/routes/imageRoutes';
-import { trainingRoutes } from '@/api/routes/trainingRoutes';
-import { errorHandler } from '@/api/middlewares/errorHandler';
+import express, { Application } from "express";
+import cors from "cors";
+import dotenv from "dotenv/lib/main";
+import { imageRoutes } from "@/api/routes/imageRoutes";
+import { trainingRoutes } from "@/api/routes/trainingRoutes";
+import { errorHandler } from "@/api/middlewares/errorHandler";
 
 // Cargar variables de entorno
 dotenv.config();
@@ -42,8 +42,8 @@ class App {
    * Inicializa las rutas de la API
    */
   private initializeRoutes(): void {
-    this.app.use('/api/images', imageRoutes);
-    this.app.use('/api/training', trainingRoutes);
+    this.app.use("/api/images", imageRoutes);
+    this.app.use("/api/training", trainingRoutes);
   }
 
   /**
