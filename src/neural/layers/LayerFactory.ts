@@ -1,8 +1,8 @@
-import { ILayer } from "@/core/interfaces/ILayer";
-import { InputLayer } from "@/neural/layers/InputLayer";
-import { DenseLayer } from "@/neural/layers/DenseLayer";
-import { ConvolutionalLayer } from "@/neural/layers/ConvolutionalLayer";
-import { ActivationType } from "@/core/types/ActivationType";
+import { ILayer } from "../../core/interfaces/ILayer";
+import { InputLayer } from "./InputLayer";
+import { DenseLayer } from "./DenseLayer";
+import { ConvolutionalLayer } from "./ConvolutionalLayer";
+import { ActivationType } from "../../core/types/ActivationType";
 
 /**
  * Tipos de capas disponibles para la red neuronal

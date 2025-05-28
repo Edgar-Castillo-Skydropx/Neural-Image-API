@@ -1,6 +1,10 @@
-import { Router } from 'express';
-import { upload, handleMulterError, validateImageUpload } from '@/api/middlewares/imageUpload';
-import { ImageController } from '@/api/controllers/ImageController';
+import { Router } from "express";
+import {
+  upload,
+  handleMulterError,
+  validateImageUpload,
+} from "@/api/middlewares/imageUpload";
+import { ImageController } from "@/api/controllers/ImageController";
 
 const router = Router();
 const imageController = new ImageController();
@@ -11,8 +15,8 @@ const imageController = new ImageController();
  * @access Public
  */
 router.post(
-  '/classify',
-  upload.single('image'),
+  "/classify",
+  upload.single("image"),
   handleMulterError,
   validateImageUpload,
   imageController.classifyImage
@@ -23,6 +27,6 @@ router.post(
  * @desc Verifica el estado del servicio de clasificación
  * @access Public
  */
-router.get('/status', imageController.getStatus);
+router.get("/status", imageController.getStatus);
 
 export const imageRoutes = router;

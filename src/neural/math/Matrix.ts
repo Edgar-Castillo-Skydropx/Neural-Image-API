@@ -1,10 +1,8 @@
-import { IMatrix } from "@/core/interfaces/IMatrix";
-
 /**
  * Implementación de la interfaz IMatrix para operaciones matriciales
  * Base matemática fundamental para la red neuronal
  */
-export class Matrix implements IMatrix {
+export class Matrix {
   public readonly rows: number;
   public readonly cols: number;
   public readonly data: number[][];
@@ -140,7 +138,7 @@ export class Matrix implements IMatrix {
    * Suma esta matriz con otra
    * @param matrix Matriz a sumar
    */
-  public add(matrix: IMatrix): Matrix {
+  public add(matrix: Matrix): Matrix {
     this.validateDimensions(matrix);
 
     const result = new Matrix(this.rows, this.cols);
@@ -157,7 +155,7 @@ export class Matrix implements IMatrix {
    * Resta otra matriz de esta
    * @param matrix Matriz a restar
    */
-  public subtract(matrix: IMatrix): Matrix {
+  public subtract(matrix: Matrix): Matrix {
     this.validateDimensions(matrix);
 
     const result = new Matrix(this.rows, this.cols);
@@ -174,7 +172,7 @@ export class Matrix implements IMatrix {
    * Multiplica esta matriz por otra (producto matricial)
    * @param matrix Matriz a multiplicar
    */
-  public multiply(matrix: IMatrix): Matrix {
+  public multiply(matrix: Matrix): Matrix {
     if (this.cols !== matrix.rows) {
       throw new Error(
         `Cannot multiply matrices of dimensions ${this.rows}x${this.cols} and ${matrix.rows}x${matrix.cols}`
@@ -199,7 +197,7 @@ export class Matrix implements IMatrix {
    * Realiza el producto de Hadamard (multiplicación elemento a elemento)
    * @param matrix Matriz para el producto de Hadamard
    */
-  public hadamardProduct(matrix: IMatrix): Matrix {
+  public hadamardProduct(matrix: Matrix): Matrix {
     this.validateDimensions(matrix);
 
     const result = new Matrix(this.rows, this.cols);
@@ -318,7 +316,7 @@ export class Matrix implements IMatrix {
    * Valida que las dimensiones de otra matriz coincidan con esta
    * @param matrix Matriz a validar
    */
-  private validateDimensions(matrix: IMatrix): void {
+  private validateDimensions(matrix: Matrix): void {
     if (this.rows !== matrix.rows || this.cols !== matrix.cols) {
       throw new Error(
         `Matrix dimensions do not match: ${this.rows}x${this.cols} and ${matrix.rows}x${matrix.cols}`

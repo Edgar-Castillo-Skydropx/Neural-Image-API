@@ -2,12 +2,18 @@ import { BaseModel } from "@/neural/models/BaseModel";
 import { IOptimizer } from "@/core/interfaces/IOptimizer";
 import { LayerFactory, LayerType } from "@/neural/layers/LayerFactory";
 import { SGDOptimizer } from "@/neural/optimizers/SGDOptimizer";
+import { CrossEntropy } from "@/neural/math/CrossEntropy";
+import { ActivationType } from "@/core/types/ActivationType";
 
 /**
  * Implementación de un modelo secuencial de red neuronal
  * Las capas se apilan secuencialmente, donde la salida de una capa es la entrada de la siguiente
+ *
+ * Esta implementación incluye soporte para clasificación multiclase con softmax y cross-entropy
  */
 export class SequentialModel extends BaseModel {
+  private useSoftmaxCrossEntropy: boolean = false;
+
   /**
    * Constructor del modelo secuencial
    * @param id Identificador único del modelo
@@ -26,6 +32,14 @@ export class SequentialModel extends BaseModel {
     const layer = LayerFactory.create(layerType, config);
     this.layerInstances.push(layer);
     this.layers.push(layer.id);
+
+    // Si la última capa añadida es densa y usa softmax, activamos el modo clasificación
+    if (
+      layerType === LayerType.DENSE &&
+      config.activation === ActivationType.SOFTMAX
+    ) {
+      this.useSoftmaxCrossEntropy = true;
+    }
   }
 
   /**
@@ -77,17 +91,31 @@ export class SequentialModel extends BaseModel {
           output = layer.forward(output);
         }
 
-        // Calcular pérdida (simplificado)
-        const loss = this.calculateLoss(output, target);
+        // Calcular pérdida según el tipo de problema
+        let loss: number;
+        if (this.useSoftmaxCrossEntropy) {
+          // Para clasificación multiclase: Cross-Entropy
+          loss = CrossEntropy.loss(output, target);
+        } else {
+          // Para otros problemas: MSE
+          loss = this.calculateMSELoss(output, target);
+        }
         totalLoss += loss;
 
-        // Verificar predicción (simplificado)
+        // Verificar predicción
         if (this.isPredictionCorrect(output, target)) {
           correctPredictions++;
         }
 
         // Retropropagación
-        let gradient = this.calculateGradient(output, target);
+        let gradient: number[][];
+        if (this.useSoftmaxCrossEntropy) {
+          // Para clasificación multiclase: gradiente de Cross-Entropy + Softmax
+          gradient = CrossEntropy.gradient(output, target);
+        } else {
+          // Para otros problemas: gradiente de MSE
+          gradient = this.calculateMSEGradient(output, target);
+        }
 
         // Actualizar pesos en orden inverso
         for (let j = this.layerInstances.length - 1; j >= 0; j--) {
@@ -142,8 +170,15 @@ export class SequentialModel extends BaseModel {
       // Propagación hacia adelante
       const output = this.predict(input);
 
-      // Calcular pérdida
-      const loss = this.calculateLoss(output, target);
+      // Calcular pérdida según el tipo de problema
+      let loss: number;
+      if (this.useSoftmaxCrossEntropy) {
+        // Para clasificación multiclase: Cross-Entropy
+        loss = CrossEntropy.loss(output, target);
+      } else {
+        // Para otros problemas: MSE
+        loss = this.calculateMSELoss(output, target);
+      }
       totalLoss += loss;
 
       // Verificar predicción
@@ -163,12 +198,12 @@ export class SequentialModel extends BaseModel {
   }
 
   /**
-   * Calcula la pérdida entre la salida y el objetivo (simplificado)
+   * Calcula la pérdida de Error Cuadrático Medio (MSE) entre la salida y el objetivo
    * @param output Salida del modelo
    * @param target Objetivo esperado
    */
-  private calculateLoss(output: number[][], target: number[][]): number {
-    // Implementación simplificada de error cuadrático medio
+  private calculateMSELoss(output: number[][], target: number[][]): number {
+    // Implementación de error cuadrático medio
     let sum = 0;
     let count = 0;
 
@@ -184,15 +219,15 @@ export class SequentialModel extends BaseModel {
   }
 
   /**
-   * Calcula el gradiente para la retropropagación (simplificado)
+   * Calcula el gradiente para la retropropagación usando MSE
    * @param output Salida del modelo
    * @param target Objetivo esperado
    */
-  private calculateGradient(
+  private calculateMSEGradient(
     output: number[][],
     target: number[][]
   ): number[][] {
-    // Implementación simplificada de gradiente para MSE
+    // Implementación de gradiente para MSE
     const gradient: number[][] = [];
 
     for (let i = 0; i < output.length; i++) {
@@ -209,15 +244,12 @@ export class SequentialModel extends BaseModel {
   }
 
   /**
-   * Verifica si la predicción es correcta (simplificado)
+   * Verifica si la predicción es correcta
    * @param output Salida del modelo
    * @param target Objetivo esperado
    */
   private isPredictionCorrect(output: number[][], target: number[][]): boolean {
-    // Implementación simplificada para clasificación
-    // En una implementación real, esto dependería del tipo de problema
-
-    // Para clasificación, podríamos comparar el índice del valor máximo
+    // Para clasificación, comparamos el índice del valor máximo
     const getMaxIndex = (arr: number[]): number => {
       let maxIndex = 0;
       let maxValue = arr[0];

@@ -4,6 +4,11 @@ import { SequentialModel } from "@/neural/models/SequentialModel";
 import { ModelRepository } from "@/db/repositories/ModelRepository";
 import { TrainingRepository } from "@/db/repositories/TrainingRepository";
 import { Database } from "@/config/database";
+import fs from "fs";
+import { promisify } from "util";
+
+// Convertir fs.readFile a promesa
+const readFile = promisify(fs.readFile);
 
 /**
  * Servicio para gestionar el entrenamiento de la red neuronal

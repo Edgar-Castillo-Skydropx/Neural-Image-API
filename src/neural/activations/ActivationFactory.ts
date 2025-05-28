@@ -3,6 +3,7 @@ import { IActivation } from "@/core/interfaces/IActivation";
 import { Sigmoid } from "@/neural/activations/Sigmoid";
 import { ReLU } from "@/neural/activations/ReLU";
 import { Tanh } from "@/neural/activations/Tanh";
+import { Softmax } from "@/neural/activations/Softmax";
 
 /**
  * Factory para crear funciones de activación
@@ -23,9 +24,16 @@ export class ActivationFactory {
       case ActivationType.TANH:
         return new Tanh();
       case ActivationType.SOFTMAX:
-        throw new Error("Softmax activation not implemented yet");
+        return new Softmax();
       case ActivationType.LINEAR:
-        throw new Error("Linear activation not implemented yet");
+        // Para activación lineal, simplemente pasamos los valores sin transformación
+        return {
+          name: "Linear",
+          forward: (x: number) => x,
+          forwardMatrix: (x: number[][]) => x.map((row) => [...row]),
+          backward: (x: number) => 1,
+          backwardMatrix: (x: number[][]) => x.map((row) => row.map(() => 1)),
+        };
       default:
         throw new Error(`Unknown activation type: ${type}`);
     }

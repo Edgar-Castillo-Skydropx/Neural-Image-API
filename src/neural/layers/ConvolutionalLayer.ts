@@ -1,108 +1,118 @@
-import { BaseLayer } from "@/neural/layers/BaseLayer";
-import { ActivationType } from "@/core/types/ActivationType";
+import { BaseLayer } from "./BaseLayer";
 import { Matrix } from "@/neural/math/Matrix";
+import { IActivation } from "@/core/interfaces/IActivation";
+import { ActivationType } from "@/core/types/ActivationType";
+import { ActivationFactory } from "@/neural/activations/ActivationFactory";
 
 /**
- * Implementación de una capa convolucional para procesamiento de imágenes
- * Realiza la operación de convolución 2D sobre los datos de entrada
+ * Interfaz para la configuración de una capa convolucional
+ */
+export interface ConvolutionalLayerConfig {
+  inputShape: [number, number, number]; // [altura, anchura, canales]
+  filters: number; // Número de filtros
+  kernelSize: [number, number]; // Tamaño del kernel [altura, anchura]
+  strides?: [number, number]; // Pasos [vertical, horizontal]
+  padding?: "valid" | "same"; // Tipo de padding
+  activation?: ActivationType; // Tipo de activación
+}
+
+/**
+ * Implementación de una capa convolucional para redes neuronales
+ * Realiza operaciones de convolución 2D sobre datos de entrada
  */
 export class ConvolutionalLayer extends BaseLayer {
-  private filters: Matrix[] = [];
-  private biases: number[] = [];
-  private kernelSize: number;
-  private stride: number;
-  private padding: number;
-  private inputChannels: number;
-  private outputChannels: number;
+  private inputShape: [number, number, number];
+  private filters: number;
+  private kernelSize: [number, number];
+  private strides: [number, number];
+  private padding: "valid" | "same";
+  private kernels: Matrix[];
+  private biases: Matrix;
+  private activation: IActivation;
 
-  private input: number[][][][] | null = null;
-  private output: number[][][][] | null = null;
+  // Almacenamiento para propagación hacia atrás
+  private inputVolumes: number[][][] | null = null;
+  private outputHeight: number = 0;
+  private outputWidth: number = 0;
 
   /**
    * Constructor de la capa convolucional
    * @param id Identificador único de la capa
-   * @param inputShape Forma de entrada [altura, anchura, canales]
-   * @param kernelSize Tamaño del kernel (filtro)
-   * @param filters Número de filtros (canales de salida)
-   * @param stride Paso de la convolución
-   * @param padding Relleno alrededor de la entrada
-   * @param activationType Tipo de función de activación
+   * @param config Configuración de la capa convolucional
    */
-  constructor(
-    id: string,
-    inputShape: number[],
-    kernelSize: number,
-    filters: number,
-    stride: number = 1,
-    padding: number = 0,
-    activationType: ActivationType
-  ) {
-    // Calcular la forma de salida
-    const inputHeight = inputShape[0];
-    const inputWidth = inputShape[1];
-    const inputChannels = inputShape[2] || 1;
+  constructor(id: string, config: ConvolutionalLayerConfig) {
+    super(id, "convolutional");
 
-    const outputHeight =
-      Math.floor((inputHeight + 2 * padding - kernelSize) / stride) + 1;
-    const outputWidth =
-      Math.floor((inputWidth + 2 * padding - kernelSize) / stride) + 1;
+    this.inputShape = config.inputShape;
+    this.filters = config.filters;
+    this.kernelSize = config.kernelSize;
+    this.strides = config.strides || [1, 1];
+    this.padding = config.padding || "valid";
 
-    super(
-      id,
-      "convolutional",
-      inputShape,
-      [outputHeight, outputWidth, filters],
-      activationType
-    );
-
-    this.kernelSize = kernelSize;
-    this.stride = stride;
-    this.padding = padding;
-    this.inputChannels = inputChannels;
-    this.outputChannels = filters;
-  }
-
-  /**
-   * Inicializa los filtros y sesgos de la capa
-   * Utiliza la inicialización de He para los pesos
-   */
-  public initialize(): void {
-    // Inicialización de He para redes con ReLU
-    const stdDev = Math.sqrt(
-      2 / (this.kernelSize * this.kernelSize * this.inputChannels)
-    );
-
-    // Inicializar filtros
-    for (let i = 0; i < this.outputChannels; i++) {
-      const filter = Matrix.random(
-        this.kernelSize * this.kernelSize * this.inputChannels,
-        1,
-        -stdDev,
-        stdDev
+    // Inicializar kernels (filtros)
+    this.kernels = [];
+    for (let i = 0; i < this.filters; i++) {
+      // Crear un kernel para cada filtro
+      // Cada kernel tiene dimensiones [kernelHeight, kernelWidth, inputChannels]
+      const kernel = new Matrix(
+        this.kernelSize[0],
+        this.kernelSize[1] * this.inputShape[2]
       );
-      this.filters.push(filter);
-      this.biases.push(0); // Inicializar sesgos a cero
+      kernel.randomize(-0.5, 0.5); // Inicializar con valores aleatorios
+      this.kernels.push(kernel);
+    }
+
+    // Inicializar biases (uno por filtro)
+    this.biases = new Matrix(1, this.filters);
+    this.biases.randomize(-0.1, 0.1);
+
+    // Inicializar función de activación
+    this.activation = ActivationFactory.create(
+      config.activation || ActivationType.RELU
+    );
+
+    // Calcular dimensiones de salida
+    if (this.padding === "valid") {
+      this.outputHeight =
+        Math.floor(
+          (this.inputShape[0] - this.kernelSize[0]) / this.strides[0]
+        ) + 1;
+      this.outputWidth =
+        Math.floor(
+          (this.inputShape[1] - this.kernelSize[1]) / this.strides[1]
+        ) + 1;
+    } else {
+      // 'same'
+      this.outputHeight = Math.ceil(this.inputShape[0] / this.strides[0]);
+      this.outputWidth = Math.ceil(this.inputShape[1] / this.strides[1]);
     }
   }
 
   /**
-   * Aplica padding a la imagen de entrada
-   * @param input Imagen de entrada [altura, anchura, canales]
-   * @returns Imagen con padding [altura+2*padding, anchura+2*padding, canales]
+   * Aplica padding a un volumen de entrada
+   * @param input Volumen de entrada [altura, anchura, canales]
+   * @param padHeight Cantidad de padding vertical
+   * @param padWidth Cantidad de padding horizontal
+   * @returns Volumen con padding aplicado
    */
-  private applyPadding(input: number[][][]): number[][][] {
-    if (this.padding === 0) {
+  private applyPadding(
+    input: number[][][],
+    padHeight: number,
+    padWidth: number
+  ): number[][][] {
+    if (padHeight === 0 && padWidth === 0) {
       return input;
     }
 
-    const height = input.length;
-    const width = input[0].length;
-    const channels = input[0][0].length;
+    const [height, width, channels] = [
+      input.length,
+      input[0].length,
+      input[0][0].length,
+    ];
+    const paddedHeight = height + 2 * padHeight;
+    const paddedWidth = width + 2 * padWidth;
 
-    const paddedHeight = height + 2 * this.padding;
-    const paddedWidth = width + 2 * this.padding;
-
-    // Crear matriz con padding inicializada a cero
+    // Crear volumen con padding (inicializado a ceros)
     const padded: number[][][] = Array(paddedHeight)
       .fill(0)
       .map(() =>
@@ -111,11 +121,11 @@ export class ConvolutionalLayer extends BaseLayer {
           .map(() => Array(channels).fill(0))
       );
 
-    // Copiar los valores originales
-    for (let i = 0; i < height; i++) {
-      for (let j = 0; j < width; j++) {
+    // Copiar valores originales al centro del volumen con padding
+    for (let h = 0; h < height; h++) {
+      for (let w = 0; w < width; w++) {
         for (let c = 0; c < channels; c++) {
-          padded[i + this.padding][j + this.padding][c] = input[i][j][c];
+          padded[h + padHeight][w + padWidth][c] = input[h][w][c];
         }
       }
     }
@@ -124,319 +134,443 @@ export class ConvolutionalLayer extends BaseLayer {
   }
 
   /**
-   * Extrae un parche de la imagen de entrada
-   * @param input Imagen de entrada
-   * @param row Fila inicial
-   * @param col Columna inicial
-   * @returns Parche aplanado como vector
+   * Convierte una matriz 2D a un volumen 3D
+   * @param matrix Matriz 2D [filas, columnas]
+   * @param height Altura del volumen
+   * @param width Anchura del volumen
+   * @param channels Canales del volumen
+   * @returns Volumen 3D [altura, anchura, canales]
    */
-  private extractPatch(
-    input: number[][][],
-    row: number,
-    col: number
-  ): number[] {
-    const patch: number[] = [];
+  private matrixToVolume(
+    matrix: number[][],
+    height: number,
+    width: number,
+    channels: number
+  ): number[][][] {
+    const volume: number[][][] = Array(height)
+      .fill(0)
+      .map(() =>
+        Array(width)
+          .fill(0)
+          .map(() => Array(channels).fill(0))
+      );
 
-    for (let c = 0; c < this.inputChannels; c++) {
-      for (let i = 0; i < this.kernelSize; i++) {
-        for (let j = 0; j < this.kernelSize; j++) {
-          patch.push(input[row + i][col + j][c]);
+    let idx = 0;
+    for (let h = 0; h < height; h++) {
+      for (let w = 0; w < width; w++) {
+        for (let c = 0; c < channels; c++) {
+          volume[h][w][c] = matrix[0][idx++];
         }
       }
     }
 
-    return patch;
+    return volume;
+  }
+
+  /**
+   * Convierte un volumen 3D a una matriz 2D
+   * @param volume Volumen 3D [altura, anchura, canales]
+   * @returns Matriz 2D [1, altura*anchura*canales]
+   */
+  private volumeToMatrix(volume: number[][][]): number[][] {
+    const height = volume.length;
+    const width = volume[0].length;
+    const channels = volume[0][0].length;
+
+    const matrix: number[][] = [[]];
+
+    for (let h = 0; h < height; h++) {
+      for (let w = 0; w < width; w++) {
+        for (let c = 0; c < channels; c++) {
+          matrix[0].push(volume[h][w][c]);
+        }
+      }
+    }
+
+    return matrix;
+  }
+
+  /**
+   * Realiza la operación de convolución en un volumen de entrada
+   * @param input Volumen de entrada [altura, anchura, canales]
+   * @returns Volumen de salida [altura, anchura, filtros]
+   */
+  private convolve(input: number[][][]): number[][][] {
+    const inputHeight = input.length;
+    const inputWidth = input[0].length;
+    const inputChannels = input[0][0].length;
+
+    // Inicializar volumen de salida
+    const output: number[][][] = Array(this.outputHeight)
+      .fill(0)
+      .map(() =>
+        Array(this.outputWidth)
+          .fill(0)
+          .map(() => Array(this.filters).fill(0))
+      );
+
+    // Para cada filtro
+    for (let f = 0; f < this.filters; f++) {
+      // Para cada posición de salida
+      for (let y = 0; y < this.outputHeight; y++) {
+        for (let x = 0; x < this.outputWidth; x++) {
+          // Calcular posición inicial en el input
+          const startY = y * this.strides[0];
+          const startX = x * this.strides[1];
+
+          let sum = 0;
+
+          // Para cada posición del kernel
+          for (let ky = 0; ky < this.kernelSize[0]; ky++) {
+            for (let kx = 0; kx < this.kernelSize[1]; kx++) {
+              // Para cada canal de entrada
+              for (let c = 0; c < inputChannels; c++) {
+                const inputY = startY + ky;
+                const inputX = startX + kx;
+
+                // Verificar límites
+                if (
+                  inputY >= 0 &&
+                  inputY < inputHeight &&
+                  inputX >= 0 &&
+                  inputX < inputWidth
+                ) {
+                  // Obtener valor del kernel y del input
+                  const kernelValue = this.kernels[f].get(
+                    ky,
+                    kx * inputChannels + c
+                  );
+                  const inputValue = input[inputY][inputX][c];
+
+                  // Acumular producto
+                  sum += kernelValue * inputValue;
+                }
+              }
+            }
+          }
+
+          // Añadir bias y guardar en salida
+          output[y][x][f] = sum + this.biases.get(0, f);
+        }
+      }
+    }
+
+    return output;
   }
 
   /**
    * Propagación hacia adelante
-   * @param input Datos de entrada [batch_size, input_height * input_width * input_channels]
-   * @returns Datos de salida [batch_size, output_height * output_width * output_channels]
+   * @param input Matriz de entrada [batch, features]
+   * @returns Matriz de salida [batch, features]
    */
   public forward(input: number[][]): number[][] {
+    // Guardar entrada para backpropagation
+    this.lastInput = input;
+
+    // Convertir matriz 2D a volumen 3D
     const batchSize = input.length;
-    const inputHeight = this.inputShape[0];
-    const inputWidth = this.inputShape[1];
+    const inputVolumes: number[][][] = [];
 
-    const outputHeight = this.outputShape[0];
-    const outputWidth = this.outputShape[1];
-
-    // Convertir entrada plana a formato de imagen [batch_size, height, width, channels]
-    const inputImages: number[][][][] = [];
     for (let b = 0; b < batchSize; b++) {
-      const image: number[][][] = Array(inputHeight)
-        .fill(0)
-        .map(() =>
-          Array(inputWidth)
-            .fill(0)
-            .map(() => Array(this.inputChannels).fill(0))
-        );
-
-      let idx = 0;
-      for (let i = 0; i < inputHeight; i++) {
-        for (let j = 0; j < inputWidth; j++) {
-          for (let c = 0; c < this.inputChannels; c++) {
-            image[i][j][c] = input[b][idx++];
-          }
-        }
-      }
-
-      inputImages.push(image);
+      // Convertir fila de la matriz a volumen
+      const volume = this.matrixToVolume(
+        [input[b]],
+        this.inputShape[0],
+        this.inputShape[1],
+        this.inputShape[2]
+      );
+      inputVolumes.push(volume);
     }
 
-    // Guardar entrada para backward pass
-    this.input = inputImages.map((img) => this.applyPadding(img));
+    // Guardar volúmenes de entrada para backpropagation
+    this.inputVolumes = inputVolumes;
 
-    // Calcular salida para cada imagen en el batch
-    const outputBatch: number[][] = [];
+    // Procesar cada volumen en el batch
+    const outputMatrix: number[][] = [];
 
     for (let b = 0; b < batchSize; b++) {
-      const paddedInput = this.input[b];
-      const outputImage: number[][][] = Array(outputHeight)
-        .fill(0)
-        .map(() =>
-          Array(outputWidth)
-            .fill(0)
-            .map(() => Array(this.outputChannels).fill(0))
-        );
+      // Calcular padding si es necesario
+      let paddedInput = inputVolumes[b];
+
+      if (this.padding === "same") {
+        const padHeight = Math.floor((this.kernelSize[0] - 1) / 2);
+        const padWidth = Math.floor((this.kernelSize[1] - 1) / 2);
+        paddedInput = this.applyPadding(paddedInput, padHeight, padWidth);
+      }
 
       // Aplicar convolución
-      for (
-        let i = 0;
-        i <= paddedInput.length - this.kernelSize;
-        i += this.stride
-      ) {
-        for (
-          let j = 0;
-          j <= paddedInput[0].length - this.kernelSize;
-          j += this.stride
-        ) {
-          const patch = this.extractPatch(paddedInput, i, j);
+      const convOutput = this.convolve(paddedInput);
 
-          for (let f = 0; f < this.outputChannels; f++) {
-            let sum = this.biases[f];
+      // Aplicar activación
+      const activatedOutput = convOutput.map((row) =>
+        row.map((col) =>
+          col.map((value) => {
+            // Aplicar función de activación a cada valor
+            const activationInput = [[value]];
+            const activationOutput = this.activation.forward(activationInput);
+            return activationOutput[0][0];
+          })
+        )
+      );
 
-            // Producto escalar del parche con el filtro
-            for (let p = 0; p < patch.length; p++) {
-              sum += patch[p] * this.filters[f].data[p][0];
-            }
-
-            // Aplicar activación
-            if (this.activation) {
-              sum = this.activation.forward(sum);
-            }
-
-            const outI = Math.floor(i / this.stride);
-            const outJ = Math.floor(j / this.stride);
-            outputImage[outI][outJ][f] = sum;
-          }
-        }
-      }
-
-      // Aplanar la salida
-      const flatOutput: number[] = [];
-      for (let i = 0; i < outputHeight; i++) {
-        for (let j = 0; j < outputWidth; j++) {
-          for (let f = 0; f < this.outputChannels; f++) {
-            flatOutput.push(outputImage[i][j][f]);
-          }
-        }
-      }
-
-      outputBatch.push(flatOutput);
+      // Convertir volumen 3D a fila de matriz 2D
+      const outputRow = this.volumeToMatrix(activatedOutput)[0];
+      outputMatrix.push(outputRow);
     }
 
-    // Guardar salida para backward pass
-    this.output = outputBatch.map((flat) => {
-      const img: number[][][] = Array(outputHeight)
-        .fill(0)
-        .map(() =>
-          Array(outputWidth)
-            .fill(0)
-            .map(() => Array(this.outputChannels).fill(0))
-        );
+    // Guardar salida para backpropagation
+    this.lastOutput = outputMatrix;
 
-      let idx = 0;
-      for (let i = 0; i < outputHeight; i++) {
-        for (let j = 0; j < outputWidth; j++) {
-          for (let f = 0; f < this.outputChannels; f++) {
-            img[i][j][f] = flat[idx++];
-          }
-        }
-      }
-
-      return img;
-    });
-
-    return outputBatch;
+    return outputMatrix;
   }
 
   /**
-   * Retropropagación
-   * @param outputGradient Gradiente de salida [batch_size, output_height * output_width * output_channels]
+   * Propagación hacia atrás
+   * @param gradient Gradiente de la capa siguiente
    * @param learningRate Tasa de aprendizaje
-   * @returns Gradiente de entrada [batch_size, input_height * input_width * input_channels]
+   * @returns Gradiente para la capa anterior
    */
-  public backward(
-    outputGradient: number[][],
-    learningRate: number
-  ): number[][] {
-    if (!this.input || !this.output) {
-      throw new Error("Forward pass must be called before backward pass");
+  public backward(gradient: number[][], learningRate: number): number[][] {
+    if (!this.lastInput || !this.lastOutput || !this.inputVolumes) {
+      throw new Error(
+        "No se puede realizar backpropagation sin forward previo"
+      );
     }
 
-    const batchSize = outputGradient.length;
-    const inputHeight = this.inputShape[0];
-    const inputWidth = this.inputShape[1];
-    const outputHeight = this.outputShape[0];
-    const outputWidth = this.outputShape[1];
+    const batchSize = gradient.length;
 
-    // Convertir gradiente plano a formato de imagen [batch_size, height, width, channels]
-    const outputGradImages: number[][][][] = [];
+    // Convertir gradiente a volúmenes 3D
+    const gradientVolumes: number[][][] = [];
+
     for (let b = 0; b < batchSize; b++) {
-      const gradImage: number[][][] = Array(outputHeight)
+      const volume = this.matrixToVolume(
+        [gradient[b]],
+        this.outputHeight,
+        this.outputWidth,
+        this.filters
+      );
+      gradientVolumes.push(volume);
+    }
+
+    // Inicializar gradientes para kernels y biases
+    const kernelGradients: Matrix[] = [];
+    for (let f = 0; f < this.filters; f++) {
+      kernelGradients.push(
+        new Matrix(this.kernelSize[0], this.kernelSize[1] * this.inputShape[2])
+      );
+    }
+
+    const biasGradients = new Matrix(1, this.filters);
+
+    // Inicializar gradiente para la capa anterior
+    const inputGradient: number[][] = [];
+    for (let b = 0; b < batchSize; b++) {
+      inputGradient.push(Array(this.lastInput[b].length).fill(0));
+    }
+
+    // Para cada ejemplo en el batch
+    for (let b = 0; b < batchSize; b++) {
+      // Obtener volumen de entrada
+      const inputVolume = this.inputVolumes[b];
+
+      // Calcular padding si es necesario
+      let paddedInput = inputVolume;
+
+      if (this.padding === "same") {
+        const padHeight = Math.floor((this.kernelSize[0] - 1) / 2);
+        const padWidth = Math.floor((this.kernelSize[1] - 1) / 2);
+        paddedInput = this.applyPadding(paddedInput, padHeight, padWidth);
+      }
+
+      // Obtener gradiente para este ejemplo
+      const gradientVolume = gradientVolumes[b];
+
+      // Inicializar gradiente para la entrada de este ejemplo
+      const inputGradientVolume: number[][][] = Array(this.inputShape[0])
         .fill(0)
         .map(() =>
-          Array(outputWidth)
+          Array(this.inputShape[1])
             .fill(0)
-            .map(() => Array(this.outputChannels).fill(0))
+            .map(() => Array(this.inputShape[2]).fill(0))
         );
 
-      let idx = 0;
-      for (let i = 0; i < outputHeight; i++) {
-        for (let j = 0; j < outputWidth; j++) {
-          for (let f = 0; f < this.outputChannels; f++) {
-            gradImage[i][j][f] = outputGradient[b][idx++];
+      // Para cada filtro
+      for (let f = 0; f < this.filters; f++) {
+        // Para cada posición de salida
+        for (let y = 0; y < this.outputHeight; y++) {
+          for (let x = 0; x < this.outputWidth; x++) {
+            // Obtener gradiente en esta posición
+            const gradValue = gradientVolume[y][x][f];
+
+            // Actualizar bias gradient
+            biasGradients.add(0, f, gradValue);
+
+            // Calcular posición inicial en el input
+            const startY = y * this.strides[0];
+            const startX = x * this.strides[1];
+
+            // Para cada posición del kernel
+            for (let ky = 0; ky < this.kernelSize[0]; ky++) {
+              for (let kx = 0; kx < this.kernelSize[1]; kx++) {
+                // Para cada canal de entrada
+                for (let c = 0; c < this.inputShape[2]; c++) {
+                  const inputY = startY + ky;
+                  const inputX = startX + kx;
+
+                  // Verificar límites
+                  if (
+                    inputY >= 0 &&
+                    inputY < paddedInput.length &&
+                    inputX >= 0 &&
+                    inputX < paddedInput[0].length
+                  ) {
+                    // Obtener valor de entrada
+                    const inputValue = paddedInput[inputY][inputX][c];
+
+                    // Actualizar gradiente del kernel
+                    kernelGradients[f].add(
+                      ky,
+                      kx * this.inputShape[2] + c,
+                      gradValue * inputValue
+                    );
+
+                    // Si estamos dentro de los límites del input original (sin padding)
+                    if (
+                      this.padding === "valid" ||
+                      (inputY >= 0 &&
+                        inputY < this.inputShape[0] &&
+                        inputX >= 0 &&
+                        inputX < this.inputShape[1])
+                    ) {
+                      // Obtener valor del kernel
+                      const kernelValue = this.kernels[f].get(
+                        ky,
+                        kx * this.inputShape[2] + c
+                      );
+
+                      // Actualizar gradiente de entrada
+                      // Ajustar coordenadas si hay padding
+                      const adjustedY =
+                        this.padding === "same"
+                          ? inputY - Math.floor((this.kernelSize[0] - 1) / 2)
+                          : inputY;
+                      const adjustedX =
+                        this.padding === "same"
+                          ? inputX - Math.floor((this.kernelSize[1] - 1) / 2)
+                          : inputX;
+
+                      if (
+                        adjustedY >= 0 &&
+                        adjustedY < this.inputShape[0] &&
+                        adjustedX >= 0 &&
+                        adjustedX < this.inputShape[1]
+                      ) {
+                        inputGradientVolume[adjustedY][adjustedX][c] +=
+                          gradValue * kernelValue;
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
 
-      outputGradImages.push(gradImage);
+      // Convertir volumen de gradiente a fila de matriz
+      const inputGradientRow = this.volumeToMatrix(inputGradientVolume)[0];
+
+      // Actualizar gradiente de entrada para este ejemplo
+      for (let i = 0; i < inputGradientRow.length; i++) {
+        inputGradient[b][i] = inputGradientRow[i];
+      }
     }
 
-    // Inicializar gradientes de filtros y sesgos
-    const filterGradients: Matrix[] = [];
-    const biasGradients: number[] = Array(this.outputChannels).fill(0);
+    // Actualizar kernels y biases con los gradientes
+    for (let f = 0; f < this.filters; f++) {
+      // Actualizar kernel
+      for (let i = 0; i < this.kernelSize[0]; i++) {
+        for (let j = 0; j < this.kernelSize[1] * this.inputShape[2]; j++) {
+          const gradValue = kernelGradients[f].get(i, j) / batchSize;
+          const currentValue = this.kernels[f].get(i, j);
+          this.kernels[f].set(i, j, currentValue - learningRate * gradValue);
+        }
+      }
 
-    for (let f = 0; f < this.outputChannels; f++) {
-      filterGradients.push(
-        new Matrix(this.kernelSize * this.kernelSize * this.inputChannels, 1)
-      );
+      // Actualizar bias
+      const biasGrad = biasGradients.get(0, f) / batchSize;
+      const currentBias = this.biases.get(0, f);
+      this.biases.set(0, f, currentBias - learningRate * biasGrad);
     }
 
-    // Inicializar gradientes de entrada
-    const inputGradients: number[][][][] = Array(batchSize)
-      .fill(0)
-      .map(() =>
-        Array(inputHeight)
-          .fill(0)
-          .map(() =>
-            Array(inputWidth)
-              .fill(0)
-              .map(() => Array(this.inputChannels).fill(0))
-          )
-      );
+    return inputGradient;
+  }
 
-    // Calcular gradientes
-    for (let b = 0; b < batchSize; b++) {
-      const paddedInput = this.input[b];
-      const outputGrad = outputGradImages[b];
+  /**
+   * Obtiene los pesos de la capa para guardar
+   * @returns Objeto con los pesos de la capa
+   */
+  public getWeights(): Record<string, any> {
+    const kernelsData: number[][][] = [];
 
-      // Calcular gradientes de filtros y sesgos
-      for (let i = 0; i < outputHeight; i++) {
-        for (let j = 0; j < outputWidth; j++) {
-          const inputI = i * this.stride;
-          const inputJ = j * this.stride;
-          const patch = this.extractPatch(paddedInput, inputI, inputJ);
+    for (let f = 0; f < this.filters; f++) {
+      const kernelData: number[][] = [];
+      for (let i = 0; i < this.kernelSize[0]; i++) {
+        const row: number[] = [];
+        for (let j = 0; j < this.kernelSize[1] * this.inputShape[2]; j++) {
+          row.push(this.kernels[f].get(i, j));
+        }
+        kernelData.push(row);
+      }
+      kernelsData.push(kernelData);
+    }
 
-          for (let f = 0; f < this.outputChannels; f++) {
-            const gradValue = outputGrad[i][j][f];
+    const biasesData: number[] = [];
+    for (let f = 0; f < this.filters; f++) {
+      biasesData.push(this.biases.get(0, f));
+    }
 
-            // Gradiente del sesgo
-            biasGradients[f] += gradValue;
+    return {
+      kernels: kernelsData,
+      biases: biasesData,
+      inputShape: this.inputShape,
+      filters: this.filters,
+      kernelSize: this.kernelSize,
+      strides: this.strides,
+      padding: this.padding,
+    };
+  }
 
-            // Gradiente del filtro
-            for (let p = 0; p < patch.length; p++) {
-              filterGradients[f].data[p][0] += patch[p] * gradValue;
+  /**
+   * Carga los pesos de la capa
+   * @param weights Objeto con los pesos a cargar
+   */
+  public setWeights(weights: Record<string, any>): void {
+    if (!weights.kernels || !weights.biases) {
+      throw new Error("Formato de pesos inválido para capa convolucional");
+    }
+
+    // Cargar kernels
+    for (let f = 0; f < this.filters; f++) {
+      if (f < weights.kernels.length) {
+        for (let i = 0; i < this.kernelSize[0]; i++) {
+          for (let j = 0; j < this.kernelSize[1] * this.inputShape[2]; j++) {
+            if (
+              i < weights.kernels[f].length &&
+              j < weights.kernels[f][i].length
+            ) {
+              this.kernels[f].set(i, j, weights.kernels[f][i][j]);
             }
           }
         }
       }
     }
 
-    // Actualizar filtros y sesgos
-    for (let f = 0; f < this.outputChannels; f++) {
-      // Actualizar filtro
-      this.filters[f] = this.filters[f].subtract(
-        filterGradients[f].multiplyScalar(learningRate / batchSize)
-      );
-
-      // Actualizar sesgo
-      this.biases[f] -= (learningRate * biasGradients[f]) / batchSize;
-    }
-
-    // Calcular gradiente de entrada (simplificado - en una implementación real sería más complejo)
-    const inputGradientBatch: number[][] = [];
-    for (let b = 0; b < batchSize; b++) {
-      const flatGrad: number[] = [];
-      for (let i = 0; i < inputHeight; i++) {
-        for (let j = 0; j < inputWidth; j++) {
-          for (let c = 0; c < this.inputChannels; c++) {
-            flatGrad.push(0); // Simplificado
-          }
-        }
+    // Cargar biases
+    for (let f = 0; f < this.filters; f++) {
+      if (f < weights.biases.length) {
+        this.biases.set(0, f, weights.biases[f]);
       }
-      inputGradientBatch.push(flatGrad);
     }
-
-    return inputGradientBatch;
-  }
-
-  /**
-   * Obtiene los pesos de la capa
-   */
-  public getWeights(): Record<string, number[][]> {
-    const weights: Record<string, number[][]> = {
-      biases: [this.biases],
-    };
-
-    for (let f = 0; f < this.filters.length; f++) {
-      weights[`filter_${f}`] = this.filters[f].data;
-    }
-
-    return weights;
-  }
-
-  /**
-   * Establece los pesos de la capa
-   * @param weights Pesos a establecer
-   */
-  public setWeights(weights: Record<string, number[][]>): void {
-    if (!weights.biases) {
-      throw new Error("Invalid weights object: missing biases");
-    }
-
-    this.biases = weights.biases[0];
-
-    for (let f = 0; f < this.outputChannels; f++) {
-      const filterKey = `filter_${f}`;
-      if (!weights[filterKey]) {
-        throw new Error(`Invalid weights object: missing ${filterKey}`);
-      }
-
-      this.filters[f] = Matrix.fromArray(weights[filterKey]);
-    }
-  }
-
-  /**
-   * Carga la configuración de la capa desde formato JSON
-   * @param config Configuración en formato JSON
-   */
-  public fromJSON(config: Record<string, any>): void {
-    if (!config.weights) {
-      throw new Error("Invalid layer configuration: missing weights");
-    }
-
-    this.setWeights(config.weights);
   }
 }

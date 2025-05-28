@@ -8,8 +8,8 @@ import dotenv from "dotenv";
 import path from "path";
 
 // Importar modelos
-import { NetworkModel } from "../src/db/models/NetworkModel";
-import { TrainingData } from "../src/db/models/TrainingData";
+import { NetworkModel } from "../db/models/NetworkModel";
+import { TrainingData } from "../db/models/TrainingData";
 
 // Cargar variables de entorno
 dotenv.config({ path: path.resolve(__dirname, "../.env") });

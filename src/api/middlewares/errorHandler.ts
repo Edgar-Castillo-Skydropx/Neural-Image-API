@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 /**
  * Middleware para manejo centralizado de errores
@@ -14,21 +14,21 @@ export const errorHandler = (
 
   // Determinar el código de estado HTTP
   let statusCode = 500;
-  let errorMessage = 'Error interno del servidor';
+  let errorMessage = "Error interno del servidor";
 
   // Personalizar respuesta según el tipo de error
-  if (error.name === 'ValidationError') {
+  if (error.name === "ValidationError") {
     statusCode = 400;
     errorMessage = error.message;
-  } else if (error.name === 'UnauthorizedError') {
+  } else if (error.name === "UnauthorizedError") {
     statusCode = 401;
-    errorMessage = 'No autorizado';
-  } else if (error.name === 'ForbiddenError') {
+    errorMessage = "No autorizado";
+  } else if (error.name === "ForbiddenError") {
     statusCode = 403;
-    errorMessage = 'Acceso prohibido';
-  } else if (error.name === 'NotFoundError') {
+    errorMessage = "Acceso prohibido";
+  } else if (error.name === "NotFoundError") {
     statusCode = 404;
-    errorMessage = 'Recurso no encontrado';
+    errorMessage = "Recurso no encontrado";
   }
 
   // Enviar respuesta de error
@@ -36,7 +36,7 @@ export const errorHandler = (
     success: false,
     error: {
       message: errorMessage,
-      code: statusCode
-    }
+      code: statusCode,
+    },
   });
 };
