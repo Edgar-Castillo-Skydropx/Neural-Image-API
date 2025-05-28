@@ -1,6 +1,7 @@
-import { IModel } from "../../core/interfaces/IModel";
-import { ILayer } from "../../core/interfaces/ILayer";
-import { IOptimizer } from "../../core/interfaces/IOptimizer";
+import { IModel } from "@/core/interfaces/IModel";
+import { ILayer } from "@/core/interfaces/ILayer";
+import { IOptimizer } from "@/core/interfaces/IOptimizer";
+
 /**
  * Clase base abstracta para todos los modelos de red neuronal
  * Implementa la interfaz IModel y proporciona funcionalidad común

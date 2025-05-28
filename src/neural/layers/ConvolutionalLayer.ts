@@ -1,4 +1,4 @@
-import { BaseLayer } from "./BaseLayer";
+import { BaseLayer } from "@/neural/layers/BaseLayer";
 import { Matrix } from "@/neural/math/Matrix";
 import { ActivationType } from "@/core/types/ActivationType";
 
@@ -23,13 +23,13 @@ export class ConvolutionalLayer extends BaseLayer {
   private kernelSize: [number, number];
   private strides: [number, number];
   private padding: "valid" | "same";
-  private kernels: Matrix[];
-  private biases: Matrix;
+  private kernels: Matrix[] = [];
+  private biases: Matrix = new Matrix(1, 1);
 
   // Almacenamiento para propagación hacia atrás
   private lastInput: number[][] | null = null;
   private lastOutput: number[][] | null = null;
-  private inputVolumes: number[][][] | null = null;
+  private inputVolumes: number[][][][] | null = null; // [batch, height, width, channels]
   private outputHeight: number = 0;
   private outputWidth: number = 0;
 
@@ -72,8 +72,6 @@ export class ConvolutionalLayer extends BaseLayer {
     this.padding = padding;
     this.outputHeight = outputHeight;
     this.outputWidth = outputWidth;
-    this.kernels = [];
-    this.biases = new Matrix(1, 1);
 
     // Inicializar kernels y biases
     this.initialize();
@@ -127,22 +125,27 @@ export class ConvolutionalLayer extends BaseLayer {
       return input;
     }
 
-    const [height, width, channels] = [
-      input.length,
-      input[0].length,
-      input[0][0].length,
-    ];
+    const height = input.length;
+    const width = input[0].length;
+    const channels = input[0][0].length;
+
     const paddedHeight = height + 2 * padHeight;
     const paddedWidth = width + 2 * padWidth;
 
     // Crear volumen con padding (inicializado a ceros)
-    const padded: number[][][] = Array(paddedHeight)
-      .fill(0)
-      .map(() =>
-        Array(paddedWidth)
-          .fill(0)
-          .map(() => Array(channels).fill(0))
-      );
+    const padded: number[][][] = [];
+
+    for (let h = 0; h < paddedHeight; h++) {
+      const paddedRow: number[][] = [];
+      for (let w = 0; w < paddedWidth; w++) {
+        const paddedChannel: number[] = [];
+        for (let c = 0; c < channels; c++) {
+          paddedChannel.push(0);
+        }
+        paddedRow.push(paddedChannel);
+      }
+      padded.push(paddedRow);
+    }
 
     // Copiar valores originales al centro del volumen con padding
     for (let h = 0; h < height; h++) {
@@ -170,19 +173,29 @@ export class ConvolutionalLayer extends BaseLayer {
     width: number,
     channels: number
   ): number[][][] {
-    const volume: number[][][] = Array(height)
-      .fill(0)
-      .map(() =>
-        Array(width)
-          .fill(0)
-          .map(() => Array(channels).fill(0))
-      );
+    // Crear estructura del volumen
+    const volume: number[][][] = [];
 
+    for (let h = 0; h < height; h++) {
+      const row: number[][] = [];
+      for (let w = 0; w < width; w++) {
+        const channel: number[] = [];
+        for (let c = 0; c < channels; c++) {
+          channel.push(0);
+        }
+        row.push(channel);
+      }
+      volume.push(row);
+    }
+
+    // Llenar el volumen con los datos de la matriz
     let idx = 0;
     for (let h = 0; h < height; h++) {
       for (let w = 0; w < width; w++) {
         for (let c = 0; c < channels; c++) {
-          volume[h][w][c] = matrix[0][idx++];
+          if (idx < matrix[0].length) {
+            volume[h][w][c] = matrix[0][idx++];
+          }
         }
       }
     }
@@ -197,8 +210,8 @@ export class ConvolutionalLayer extends BaseLayer {
    */
   private volumeToMatrix(volume: number[][][]): number[][] {
     const height = volume.length;
-    const width = volume[0].length;
-    const channels = volume[0][0].length;
+    const width = height > 0 ? volume[0].length : 0;
+    const channels = height > 0 && width > 0 ? volume[0][0].length : 0;
 
     const matrix: number[][] = [[]];
 
@@ -224,13 +237,19 @@ export class ConvolutionalLayer extends BaseLayer {
     const inputChannels = input[0][0].length;
 
     // Inicializar volumen de salida
-    const output: number[][][] = Array(this.outputHeight)
-      .fill(0)
-      .map(() =>
-        Array(this.outputWidth)
-          .fill(0)
-          .map(() => Array(this.filters).fill(0))
-      );
+    const output: number[][][] = [];
+
+    for (let y = 0; y < this.outputHeight; y++) {
+      const outputRow: number[][] = [];
+      for (let x = 0; x < this.outputWidth; x++) {
+        const outputChannel: number[] = [];
+        for (let f = 0; f < this.filters; f++) {
+          outputChannel.push(0);
+        }
+        outputRow.push(outputChannel);
+      }
+      output.push(outputRow);
+    }
 
     // Para cada filtro
     for (let f = 0; f < this.filters; f++) {
@@ -292,7 +311,7 @@ export class ConvolutionalLayer extends BaseLayer {
 
     // Convertir matriz 2D a volumen 3D
     const batchSize = input.length;
-    const inputVolumes: number[][][] = [];
+    const inputVolumes: number[][][][] = [];
 
     for (let b = 0; b < batchSize; b++) {
       // Convertir fila de la matriz a volumen
@@ -330,12 +349,13 @@ export class ConvolutionalLayer extends BaseLayer {
       if (this.activation) {
         // Convertir volumen a matriz para aplicar activación
         const flatConvOutput = this.volumeToMatrix(convOutput);
-        const activatedFlatOutput =
-          this.activation.forwardMatrix(flatConvOutput);
+        const activatedFlatOutput = this.activation.forwardMatrix([
+          flatConvOutput[0],
+        ]);
 
         // Convertir de vuelta a volumen
         activatedOutput = this.matrixToVolume(
-          activatedFlatOutput,
+          [activatedFlatOutput[0]],
           this.outputHeight,
           this.outputWidth,
           this.filters
@@ -373,18 +393,11 @@ export class ConvolutionalLayer extends BaseLayer {
     // Aplicar derivada de la activación si existe
     let adjustedGradient = gradient;
     if (this.activation) {
-      adjustedGradient = this.activation.backwardMatrix(this.lastOutput);
-
-      // Multiplicar elemento a elemento
-      for (let i = 0; i < gradient.length; i++) {
-        for (let j = 0; j < gradient[i].length; j++) {
-          adjustedGradient[i][j] *= gradient[i][j];
-        }
-      }
+      adjustedGradient = this.activation.backwardMatrix(gradient);
     }
 
     // Convertir gradiente a volúmenes 3D
-    const gradientVolumes: number[][][] = [];
+    const gradientVolumes: number[][][][] = [];
 
     for (let b = 0; b < batchSize; b++) {
       const volume = this.matrixToVolume(
@@ -430,13 +443,19 @@ export class ConvolutionalLayer extends BaseLayer {
       const gradientVolume = gradientVolumes[b];
 
       // Inicializar gradiente para la entrada de este ejemplo
-      const inputGradientVolume: number[][][] = Array(this.inputShape[0])
-        .fill(0)
-        .map(() =>
-          Array(this.inputShape[1])
-            .fill(0)
-            .map(() => Array(this.inputShape[2]).fill(0))
-        );
+      const inputGradientVolume: number[][][] = [];
+
+      for (let h = 0; h < this.inputShape[0]; h++) {
+        const row: number[][] = [];
+        for (let w = 0; w < this.inputShape[1]; w++) {
+          const channel: number[] = [];
+          for (let c = 0; c < this.inputShape[2]; c++) {
+            channel.push(0);
+          }
+          row.push(channel);
+        }
+        inputGradientVolume.push(row);
+      }
 
       // Para cada filtro
       for (let f = 0; f < this.filters; f++) {
@@ -447,7 +466,7 @@ export class ConvolutionalLayer extends BaseLayer {
             const gradValue = gradientVolume[y][x][f];
 
             // Actualizar bias gradient
-            biasGradients.add(0, f, gradValue);
+            biasGradients.set(0, f, biasGradients.get(0, f) + gradValue);
 
             // Calcular posición inicial en el input
             const startY = y * this.strides[0];
@@ -472,10 +491,14 @@ export class ConvolutionalLayer extends BaseLayer {
                     const inputValue = paddedInput[inputY][inputX][c];
 
                     // Actualizar gradiente del kernel
-                    kernelGradients[f].add(
+                    const currentGrad = kernelGradients[f].get(
+                      ky,
+                      kx * this.inputShape[2] + c
+                    );
+                    kernelGradients[f].set(
                       ky,
                       kx * this.inputShape[2] + c,
-                      gradValue * inputValue
+                      currentGrad + gradValue * inputValue
                     );
 
                     // Si estamos dentro de los límites del input original (sin padding)

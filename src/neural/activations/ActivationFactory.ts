@@ -28,7 +28,7 @@ export class ActivationFactory {
       case ActivationType.LINEAR:
         // Para activación lineal, simplemente pasamos los valores sin transformación
         return {
-          name: "Linear",
+          name: "linear",
           forward: (x: number) => x,
           forwardMatrix: (x: number[][]) => x.map((row) => [...row]),
           backward: (x: number) => 1,

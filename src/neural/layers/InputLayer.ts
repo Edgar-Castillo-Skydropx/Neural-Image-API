@@ -1,4 +1,4 @@
-import { BaseLayer } from "./BaseLayer";
+import { BaseLayer } from "@/neural/layers/BaseLayer";
 
 /**
  * Implementación de una capa de entrada para la red neuronal

@@ -21,6 +21,23 @@ if ! command -v ts-node &> /dev/null; then
     npm install -g ts-node
 fi
 
+# Verificar que estamos en el directorio correcto
+if [ ! -f "package.json" ]; then
+    echo "Error: Este script debe ejecutarse desde el directorio raíz del proyecto."
+    exit 1
+fi
+
+# Verificar que el archivo .env existe
+if [ ! -f ".env" ]; then
+    echo "Advertencia: No se encontró el archivo .env. Copiando desde .env.example..."
+    if [ -f ".env.example" ]; then
+        cp .env.example .env
+    else
+        echo "Error: No se encontró .env.example. Por favor, crea un archivo .env manualmente."
+        exit 1
+    fi
+fi
+
 # Ejecutar el script de poblado
 echo "Poblando la base de datos..."
 ts-node scripts/seed-database.ts

@@ -2,16 +2,20 @@ import { IActivation } from "@/core/interfaces/IActivation";
 
 /**
  * Implementación de la función de activación Softmax
- *
+ * 
  * Softmax convierte un vector de valores reales en una distribución de probabilidad,
  * donde la suma de todos los componentes es 1. Es especialmente útil para la capa
  * de salida en problemas de clasificación multiclase.
- *
+ * 
  * La fórmula matemática es:
  * softmax(x_i) = exp(x_i) / sum(exp(x_j)) para todo j
  */
 export class Softmax implements IActivation {
-  name: string = "softmax";
+  /**
+   * Nombre de la función de activación
+   */
+  public readonly name: string = "softmax";
+
   /**
    * Aplica la función Softmax a un valor escalar (no aplicable directamente)
    * Softmax debe aplicarse a un vector completo, no a valores individuales
@@ -19,9 +23,7 @@ export class Softmax implements IActivation {
    * @returns Valor transformado
    */
   public forward(x: number): number {
-    throw new Error(
-      "Softmax cannot be applied to a single value. Use forwardVector instead."
-    );
+    throw new Error("Softmax cannot be applied to a single value. Use forwardVector instead.");
   }
 
   /**
@@ -32,15 +34,15 @@ export class Softmax implements IActivation {
   public forwardVector(x: number[]): number[] {
     // Encontrar el valor máximo para estabilidad numérica
     const maxVal = Math.max(...x);
-
+    
     // Calcular exp(x_i - max) para cada elemento
-    const expValues = x.map((val) => Math.exp(val - maxVal));
-
+    const expValues = x.map(val => Math.exp(val - maxVal));
+    
     // Calcular la suma de todos los valores exponenciales
     const sumExp = expValues.reduce((sum, val) => sum + val, 0);
-
+    
     // Normalizar para obtener probabilidades
-    return expValues.map((val) => val / sumExp);
+    return expValues.map(val => val / sumExp);
   }
 
   /**
@@ -50,7 +52,7 @@ export class Softmax implements IActivation {
    * @returns Matriz transformada [batch_size, features]
    */
   public forwardMatrix(x: number[][]): number[][] {
-    return x.map((row) => this.forwardVector(row));
+    return x.map(row => this.forwardVector(row));
   }
 
   /**
@@ -59,9 +61,7 @@ export class Softmax implements IActivation {
    * @returns Derivada
    */
   public backward(x: number): number {
-    throw new Error(
-      "Softmax backward cannot be applied to a single value. Use backwardVector instead."
-    );
+    throw new Error("Softmax backward cannot be applied to a single value. Use backwardVector instead.");
   }
 
   /**
@@ -75,7 +75,7 @@ export class Softmax implements IActivation {
     // Nota: Esta es una simplificación. La derivada completa de softmax
     // es una matriz jacobiana. En la práctica, cuando se usa con cross-entropy,
     // la derivada se simplifica a (output - target)
-    return x.map((val) => val * (1 - val));
+    return x.map(val => val * (1 - val));
   }
 
   /**
@@ -84,6 +84,6 @@ export class Softmax implements IActivation {
    * @returns Matriz de derivadas [batch_size, features]
    */
   public backwardMatrix(x: number[][]): number[][] {
-    return x.map((row) => this.backwardVector(row));
+    return x.map(row => this.backwardVector(row));
   }
 }

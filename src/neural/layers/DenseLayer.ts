@@ -1,6 +1,6 @@
-import { BaseLayer } from "./BaseLayer";
-import { Matrix } from "../math/Matrix";
-import { ActivationType } from "../../core/types/ActivationType";
+import { BaseLayer } from "@/neural/layers/BaseLayer";
+import { Matrix } from "@/neural/math/Matrix";
+import { ActivationType } from "@/core/types/ActivationType";
 
 /**
  * Implementación de una capa densa (completamente conectada)

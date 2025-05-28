@@ -5,7 +5,6 @@ import { ConvolutionalModel } from "@/neural/models/ConvolutionalModel";
 import { ModelRepository } from "@/db/repositories/ModelRepository";
 import fs from "fs";
 import { promisify } from "util";
-import path from "path";
 import { createCanvas, loadImage } from "canvas";
 
 // Convertir fs.readFile a promesa

@@ -8,8 +8,8 @@ import dotenv from "dotenv";
 import path from "path";
 
 // Importar modelos
-import { NetworkModel } from "../db/models/NetworkModel";
-import { TrainingData } from "../db/models/TrainingData";
+import { NetworkModel } from "../src/db/models/NetworkModel";
+import { TrainingData } from "../src/db/models/TrainingData";
 
 // Cargar variables de entorno
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -31,19 +31,11 @@ const createSampleModels = async () => {
 
   // Clases para el modelo básico (MNIST)
   const basicClasses = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-
+  
   // Clases para el modelo avanzado (CIFAR-10)
   const advancedClasses = [
-    "avión",
-    "automóvil",
-    "pájaro",
-    "gato",
-    "ciervo",
-    "perro",
-    "rana",
-    "caballo",
-    "barco",
-    "camión",
+    "avión", "automóvil", "pájaro", "gato", "ciervo", 
+    "perro", "rana", "caballo", "barco", "camión"
   ];
 
   // Modelo 1: Clasificador básico
@@ -95,7 +87,7 @@ const createSampleModels = async () => {
       trainingTime: 120,
       epochs: 10,
       classes: basicClasses,
-      imageSize: 28, // MNIST usa imágenes de 28x28
+      imageSize: 28 // MNIST usa imágenes de 28x28
     },
   });
 
@@ -151,7 +143,7 @@ const createSampleModels = async () => {
       trainingTime: 300,
       epochs: 20,
       classes: advancedClasses,
-      imageSize: 32, // CIFAR-10 usa imágenes de 32x32
+      imageSize: 32 // CIFAR-10 usa imágenes de 32x32
     },
   });
 
@@ -193,7 +185,7 @@ const createSampleTrainingData = async () => {
       batchSize: 32,
       learningRate: 0.01,
       optimizer: "sgd",
-      imageSize: 32, // Tamaño de imagen para el entrenamiento
+      imageSize: 32 // Tamaño de imagen para el entrenamiento
     },
     results: {
       accuracy: [0.5, 0.6, 0.7, 0.75, 0.8, 0.82, 0.85, 0.87, 0.88, 0.9],
@@ -239,7 +231,7 @@ const createSampleTrainingData = async () => {
       batchSize: 16,
       learningRate: 0.005,
       optimizer: "sgd",
-      imageSize: 64, // Tamaño de imagen más grande para este entrenamiento
+      imageSize: 64 // Tamaño de imagen más grande para este entrenamiento
     },
     results: {
       accuracy: [
@@ -284,7 +276,7 @@ const createSampleTrainingData = async () => {
       batchSize: 32,
       learningRate: 0.01,
       optimizer: "sgd",
-      imageSize: 128, // Tamaño de imagen grande para este entrenamiento
+      imageSize: 128 // Tamaño de imagen grande para este entrenamiento
     },
     results: {
       accuracy: [],

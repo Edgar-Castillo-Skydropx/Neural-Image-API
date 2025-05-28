@@ -1,8 +1,10 @@
+import { IMatrix } from "@/core/interfaces/IMatrix";
+
 /**
  * Implementación de la interfaz IMatrix para operaciones matriciales
  * Base matemática fundamental para la red neuronal
  */
-export class Matrix {
+export class Matrix implements IMatrix {
   public readonly rows: number;
   public readonly cols: number;
   public readonly data: number[][];
@@ -75,21 +77,6 @@ export class Matrix {
   }
 
   /**
-   * Rellena la matriz con valores aleatorios en el rango especificado
-   * @param min Valor mínimo (por defecto -1)
-   * @param max Valor máximo (por defecto 1)
-   * @returns La matriz actual para permitir encadenamiento de métodos
-   */
-  public randomize(min: number = -1, max: number = 1): Matrix {
-    for (let i = 0; i < this.rows; i++) {
-      for (let j = 0; j < this.cols; j++) {
-        this.data[i][j] = min + Math.random() * (max - min);
-      }
-    }
-    return this;
-  }
-
-  /**
    * Crea una matriz de ceros
    * @param rows Número de filas
    * @param cols Número de columnas
@@ -137,6 +124,32 @@ export class Matrix {
   }
 
   /**
+   * Rellena la matriz con valores aleatorios en el rango especificado
+   * @param min Valor mínimo (por defecto -1)
+   * @param max Valor máximo (por defecto 1)
+   * @returns La matriz actual para permitir encadenamiento de métodos
+   */
+  public randomize(min: number = -1, max: number = 1): Matrix {
+    for (let i = 0; i < this.rows; i++) {
+      for (let j = 0; j < this.cols; j++) {
+        this.data[i][j] = min + Math.random() * (max - min);
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Añade un valor a una posición específica
+   * @param row Índice de fila
+   * @param col Índice de columna
+   * @param value Valor a añadir
+   */
+  public addValue(row: number, col: number, value: number): void {
+    this.validateIndices(row, col);
+    this.data[row][col] += value;
+  }
+
+  /**
    * Crea una copia de la matriz
    */
   public clone(): Matrix {
@@ -153,7 +166,7 @@ export class Matrix {
    * Suma esta matriz con otra
    * @param matrix Matriz a sumar
    */
-  public add(matrix: Matrix): Matrix {
+  public add(matrix: IMatrix): Matrix {
     this.validateDimensions(matrix);
 
     const result = new Matrix(this.rows, this.cols);
@@ -170,7 +183,7 @@ export class Matrix {
    * Resta otra matriz de esta
    * @param matrix Matriz a restar
    */
-  public subtract(matrix: Matrix): Matrix {
+  public subtract(matrix: IMatrix): Matrix {
     this.validateDimensions(matrix);
 
     const result = new Matrix(this.rows, this.cols);
@@ -187,7 +200,7 @@ export class Matrix {
    * Multiplica esta matriz por otra (producto matricial)
    * @param matrix Matriz a multiplicar
    */
-  public multiply(matrix: Matrix): Matrix {
+  public multiply(matrix: IMatrix): Matrix {
     if (this.cols !== matrix.rows) {
       throw new Error(
         `Cannot multiply matrices of dimensions ${this.rows}x${this.cols} and ${matrix.rows}x${matrix.cols}`
@@ -212,7 +225,7 @@ export class Matrix {
    * Realiza el producto de Hadamard (multiplicación elemento a elemento)
    * @param matrix Matriz para el producto de Hadamard
    */
-  public hadamardProduct(matrix: Matrix): Matrix {
+  public hadamardProduct(matrix: IMatrix): Matrix {
     this.validateDimensions(matrix);
 
     const result = new Matrix(this.rows, this.cols);
@@ -331,7 +344,7 @@ export class Matrix {
    * Valida que las dimensiones de otra matriz coincidan con esta
    * @param matrix Matriz a validar
    */
-  private validateDimensions(matrix: Matrix): void {
+  private validateDimensions(matrix: IMatrix): void {
     if (this.rows !== matrix.rows || this.cols !== matrix.cols) {
       throw new Error(
         `Matrix dimensions do not match: ${this.rows}x${this.cols} and ${matrix.rows}x${matrix.cols}`

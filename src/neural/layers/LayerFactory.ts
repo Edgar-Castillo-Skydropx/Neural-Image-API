@@ -1,8 +1,8 @@
-import { ILayer } from "../../core/interfaces/ILayer";
-import { InputLayer } from "./InputLayer";
-import { DenseLayer } from "./DenseLayer";
-import { ConvolutionalLayer } from "./ConvolutionalLayer";
-import { ActivationType } from "../../core/types/ActivationType";
+import { ILayer } from "@/core/interfaces/ILayer";
+import { InputLayer } from "@/neural/layers/InputLayer";
+import { DenseLayer } from "@/neural/layers/DenseLayer";
+import { ConvolutionalLayer } from "@/neural/layers/ConvolutionalLayer";
+import { ActivationType } from "@/core/types/ActivationType";
 
 /**
  * Tipos de capas disponibles para la red neuronal
@@ -45,8 +45,8 @@ export class LayerFactory {
           inputShape: config.inputShape,
           kernelSize: config.kernelSize,
           filters: config.filters,
-          strides: [config.stride || 1, config.stride || 1],
-          padding: config.padding || 0,
+          strides: config.strides || [1, 1],
+          padding: config.padding || "valid",
           activation: config.activation || ActivationType.RELU,
         });
 

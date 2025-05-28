@@ -1,7 +1,7 @@
-import { ILayer } from "../../core/interfaces/ILayer";
-import { ActivationType } from "../../core/types/ActivationType";
-import { IActivation } from "../../core/interfaces/IActivation";
-import { ActivationFactory } from "../activations/ActivationFactory";
+import { ILayer } from "@/core/interfaces/ILayer";
+import { ActivationType } from "@/core/types/ActivationType";
+import { IActivation } from "@/core/interfaces/IActivation";
+import { ActivationFactory } from "@/neural/activations/ActivationFactory";
 
 /**
  * Clase base abstracta para todas las capas neuronales
