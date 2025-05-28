@@ -68,13 +68,12 @@ El proyecto utiliza path aliases para mejorar la legibilidad y mantenibilidad de
 - `@/config/*`: Acceso a archivos de configuración
 
 Ejemplo de uso:
-
 ```typescript
 // En lugar de:
-import { ImageService } from "../../api/services/ImageService";
+import { ImageService } from '../../api/services/ImageService';
 
 // Usar:
-import { ImageService } from "@/api/services/ImageService";
+import { ImageService } from '@/api/services/ImageService';
 ```
 
 ## Implementación de la red neuronal
@@ -151,15 +150,13 @@ Esto iniciará tanto la API como la base de datos MongoDB en contenedores separa
 Para ejecutar la aplicación en modo desarrollo:
 
 1. Instala las dependencias:
-
 ```bash
-pnpm install
+npm install
 ```
 
 2. Inicia el servidor de desarrollo:
-
 ```bash
-pnpm dev
+npm run dev
 ```
 
 ## Compilación
@@ -167,7 +164,7 @@ pnpm dev
 Para compilar el proyecto a JavaScript:
 
 ```bash
-pnpm build
+npm run build
 ```
 
 El código compilado se generará en el directorio `dist/`.
@@ -177,5 +174,5 @@ El código compilado se generará en el directorio `dist/`.
 Para ejecutar la aplicación compilada:
 
 ```bash
-pnpm start
+npm start
 ```
