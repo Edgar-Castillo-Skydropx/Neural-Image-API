@@ -59,7 +59,7 @@ const EsbuildPluginImportGlob = (): Plugin => ({
 const isWatch = process.argv.includes("--watch");
 
 (isWatch ? context : build)({
-  external: [],
+  external: ["canvas"],
   entryPoints: ["./src/index.ts"],
   bundle: true,
   platform: "node",
