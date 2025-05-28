@@ -1,6 +1,7 @@
 import { IImageService } from "@/core/interfaces/IImageService";
 import { IModel } from "@/core/interfaces/IModel";
 import { SequentialModel } from "@/neural/models/SequentialModel";
+import { ConvolutionalModel } from "@/neural/models/ConvolutionalModel";
 import { ModelRepository } from "@/db/repositories/ModelRepository";
 import fs from "fs";
 import { promisify } from "util";
@@ -43,6 +44,11 @@ export class ImageService implements IImageService {
       // Crear instancia del modelo según la arquitectura
       if (latestModel.architecture === "sequential") {
         this.model = new SequentialModel(
+          latestModel._id.toString(),
+          latestModel.name
+        );
+      } else if (latestModel.architecture === "convolutional") {
+        this.model = new ConvolutionalModel(
           latestModel._id.toString(),
           latestModel.name
         );
