@@ -1,8 +1,6 @@
 import { BaseLayer } from "./BaseLayer";
 import { Matrix } from "@/neural/math/Matrix";
-import { IActivation } from "@/core/interfaces/IActivation";
 import { ActivationType } from "@/core/types/ActivationType";
-import { ActivationFactory } from "@/neural/activations/ActivationFactory";
 
 /**
  * Interfaz para la configuración de una capa convolucional
@@ -21,16 +19,16 @@ export interface ConvolutionalLayerConfig {
  * Realiza operaciones de convolución 2D sobre datos de entrada
  */
 export class ConvolutionalLayer extends BaseLayer {
-  private inputShape: [number, number, number];
   private filters: number;
   private kernelSize: [number, number];
   private strides: [number, number];
   private padding: "valid" | "same";
   private kernels: Matrix[];
   private biases: Matrix;
-  private activation: IActivation;
 
   // Almacenamiento para propagación hacia atrás
+  private lastInput: number[][] | null = null;
+  private lastOutput: number[][] | null = null;
   private inputVolumes: number[][][] | null = null;
   private outputHeight: number = 0;
   private outputWidth: number = 0;
@@ -41,13 +39,51 @@ export class ConvolutionalLayer extends BaseLayer {
    * @param config Configuración de la capa convolucional
    */
   constructor(id: string, config: ConvolutionalLayerConfig) {
-    super(id, "convolutional");
+    // Calcular dimensiones de salida para pasar a BaseLayer
+    const inputShape = config.inputShape;
+    const kernelSize = config.kernelSize;
+    const strides = config.strides || [1, 1];
+    const padding = config.padding || "valid";
 
-    this.inputShape = config.inputShape;
+    let outputHeight: number;
+    let outputWidth: number;
+
+    if (padding === "valid") {
+      outputHeight =
+        Math.floor((inputShape[0] - kernelSize[0]) / strides[0]) + 1;
+      outputWidth =
+        Math.floor((inputShape[1] - kernelSize[1]) / strides[1]) + 1;
+    } else {
+      // 'same'
+      outputHeight = Math.ceil(inputShape[0] / strides[0]);
+      outputWidth = Math.ceil(inputShape[1] / strides[1]);
+    }
+
+    // Crear forma de salida: [altura, anchura, filtros]
+    const outputShape: number[] = [outputHeight, outputWidth, config.filters];
+
+    // Llamar al constructor de BaseLayer con los parámetros correctos
+    super(id, "convolutional", inputShape, outputShape, config.activation);
+
+    // Guardar configuración específica de la capa convolucional
     this.filters = config.filters;
-    this.kernelSize = config.kernelSize;
-    this.strides = config.strides || [1, 1];
-    this.padding = config.padding || "valid";
+    this.kernelSize = kernelSize;
+    this.strides = strides;
+    this.padding = padding;
+    this.outputHeight = outputHeight;
+    this.outputWidth = outputWidth;
+    this.kernels = [];
+    this.biases = new Matrix(1, 1);
+
+    // Inicializar kernels y biases
+    this.initialize();
+  }
+
+  /**
+   * Inicializa los pesos de la capa convolucional
+   */
+  public initialize(): void {
+    const inputChannels = this.inputShape[2];
 
     // Inicializar kernels (filtros)
     this.kernels = [];
@@ -56,36 +92,23 @@ export class ConvolutionalLayer extends BaseLayer {
       // Cada kernel tiene dimensiones [kernelHeight, kernelWidth, inputChannels]
       const kernel = new Matrix(
         this.kernelSize[0],
-        this.kernelSize[1] * this.inputShape[2]
+        this.kernelSize[1] * inputChannels
       );
-      kernel.randomize(-0.5, 0.5); // Inicializar con valores aleatorios
+
+      // Inicialización Xavier/Glorot para mejorar convergencia
+      const stdDev = Math.sqrt(
+        2.0 /
+          (this.kernelSize[0] * this.kernelSize[1] * inputChannels +
+            this.filters)
+      );
+      kernel.randomize(-stdDev, stdDev);
+
       this.kernels.push(kernel);
     }
 
     // Inicializar biases (uno por filtro)
     this.biases = new Matrix(1, this.filters);
     this.biases.randomize(-0.1, 0.1);
-
-    // Inicializar función de activación
-    this.activation = ActivationFactory.create(
-      config.activation || ActivationType.RELU
-    );
-
-    // Calcular dimensiones de salida
-    if (this.padding === "valid") {
-      this.outputHeight =
-        Math.floor(
-          (this.inputShape[0] - this.kernelSize[0]) / this.strides[0]
-        ) + 1;
-      this.outputWidth =
-        Math.floor(
-          (this.inputShape[1] - this.kernelSize[1]) / this.strides[1]
-        ) + 1;
-    } else {
-      // 'same'
-      this.outputHeight = Math.ceil(this.inputShape[0] / this.strides[0]);
-      this.outputWidth = Math.ceil(this.inputShape[1] / this.strides[1]);
-    }
   }
 
   /**
@@ -301,17 +324,25 @@ export class ConvolutionalLayer extends BaseLayer {
       // Aplicar convolución
       const convOutput = this.convolve(paddedInput);
 
-      // Aplicar activación
-      const activatedOutput = convOutput.map((row) =>
-        row.map((col) =>
-          col.map((value) => {
-            // Aplicar función de activación a cada valor
-            const activationInput = [[value]];
-            const activationOutput = this.activation.forward(activationInput);
-            return activationOutput[0][0];
-          })
-        )
-      );
+      // Aplicar activación si existe
+      let activatedOutput: number[][][];
+
+      if (this.activation) {
+        // Convertir volumen a matriz para aplicar activación
+        const flatConvOutput = this.volumeToMatrix(convOutput);
+        const activatedFlatOutput =
+          this.activation.forwardMatrix(flatConvOutput);
+
+        // Convertir de vuelta a volumen
+        activatedOutput = this.matrixToVolume(
+          activatedFlatOutput,
+          this.outputHeight,
+          this.outputWidth,
+          this.filters
+        );
+      } else {
+        activatedOutput = convOutput;
+      }
 
       // Convertir volumen 3D a fila de matriz 2D
       const outputRow = this.volumeToMatrix(activatedOutput)[0];
@@ -339,12 +370,25 @@ export class ConvolutionalLayer extends BaseLayer {
 
     const batchSize = gradient.length;
 
+    // Aplicar derivada de la activación si existe
+    let adjustedGradient = gradient;
+    if (this.activation) {
+      adjustedGradient = this.activation.backwardMatrix(this.lastOutput);
+
+      // Multiplicar elemento a elemento
+      for (let i = 0; i < gradient.length; i++) {
+        for (let j = 0; j < gradient[i].length; j++) {
+          adjustedGradient[i][j] *= gradient[i][j];
+        }
+      }
+    }
+
     // Convertir gradiente a volúmenes 3D
     const gradientVolumes: number[][][] = [];
 
     for (let b = 0; b < batchSize; b++) {
       const volume = this.matrixToVolume(
-        [gradient[b]],
+        [adjustedGradient[b]],
         this.outputHeight,
         this.outputWidth,
         this.filters
@@ -498,79 +542,55 @@ export class ConvolutionalLayer extends BaseLayer {
       }
 
       // Actualizar bias
-      const biasGrad = biasGradients.get(0, f) / batchSize;
-      const currentBias = this.biases.get(0, f);
-      this.biases.set(0, f, currentBias - learningRate * biasGrad);
+      const biasGradValue = biasGradients.get(0, f) / batchSize;
+      const currentBiasValue = this.biases.get(0, f);
+      this.biases.set(0, f, currentBiasValue - learningRate * biasGradValue);
     }
 
     return inputGradient;
   }
 
   /**
-   * Obtiene los pesos de la capa para guardar
-   * @returns Objeto con los pesos de la capa
+   * Obtiene los pesos de la capa
    */
-  public getWeights(): Record<string, any> {
-    const kernelsData: number[][][] = [];
-
-    for (let f = 0; f < this.filters; f++) {
-      const kernelData: number[][] = [];
-      for (let i = 0; i < this.kernelSize[0]; i++) {
-        const row: number[] = [];
-        for (let j = 0; j < this.kernelSize[1] * this.inputShape[2]; j++) {
-          row.push(this.kernels[f].get(i, j));
-        }
-        kernelData.push(row);
-      }
-      kernelsData.push(kernelData);
-    }
-
-    const biasesData: number[] = [];
-    for (let f = 0; f < this.filters; f++) {
-      biasesData.push(this.biases.get(0, f));
-    }
-
-    return {
-      kernels: kernelsData,
-      biases: biasesData,
-      inputShape: this.inputShape,
-      filters: this.filters,
-      kernelSize: this.kernelSize,
-      strides: this.strides,
-      padding: this.padding,
+  public getWeights(): Record<string, number[][]> {
+    const weights: Record<string, number[][]> = {
+      biases: this.biases.data,
     };
+
+    // Añadir kernels
+    for (let i = 0; i < this.filters; i++) {
+      weights[`kernel_${i}`] = this.kernels[i].data;
+    }
+
+    return weights;
   }
 
   /**
-   * Carga los pesos de la capa
-   * @param weights Objeto con los pesos a cargar
+   * Establece los pesos de la capa
+   * @param weights Pesos a establecer
    */
-  public setWeights(weights: Record<string, any>): void {
-    if (!weights.kernels || !weights.biases) {
-      throw new Error("Formato de pesos inválido para capa convolucional");
+  public setWeights(weights: Record<string, number[][]>): void {
+    if (weights.biases) {
+      this.biases = Matrix.fromArray(weights.biases);
     }
 
     // Cargar kernels
-    for (let f = 0; f < this.filters; f++) {
-      if (f < weights.kernels.length) {
-        for (let i = 0; i < this.kernelSize[0]; i++) {
-          for (let j = 0; j < this.kernelSize[1] * this.inputShape[2]; j++) {
-            if (
-              i < weights.kernels[f].length &&
-              j < weights.kernels[f][i].length
-            ) {
-              this.kernels[f].set(i, j, weights.kernels[f][i][j]);
-            }
-          }
-        }
+    for (let i = 0; i < this.filters; i++) {
+      const kernelKey = `kernel_${i}`;
+      if (weights[kernelKey]) {
+        this.kernels[i] = Matrix.fromArray(weights[kernelKey]);
       }
     }
+  }
 
-    // Cargar biases
-    for (let f = 0; f < this.filters; f++) {
-      if (f < weights.biases.length) {
-        this.biases.set(0, f, weights.biases[f]);
-      }
+  /**
+   * Carga la configuración de la capa desde formato JSON
+   * @param config Configuración en formato JSON
+   */
+  public fromJSON(config: Record<string, any>): void {
+    if (config.weights) {
+      this.setWeights(config.weights);
     }
   }
 }

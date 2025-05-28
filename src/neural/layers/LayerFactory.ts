@@ -41,15 +41,14 @@ export class LayerFactory {
         );
 
       case LayerType.CONVOLUTIONAL:
-        return new ConvolutionalLayer(
-          id,
-          config.inputShape,
-          config.kernelSize,
-          config.filters,
-          config.stride || 1,
-          config.padding || 0,
-          config.activation || ActivationType.RELU
-        );
+        return new ConvolutionalLayer(id, {
+          inputShape: config.inputShape,
+          kernelSize: config.kernelSize,
+          filters: config.filters,
+          strides: [config.stride || 1, config.stride || 1],
+          padding: config.padding || 0,
+          activation: config.activation || ActivationType.RELU,
+        });
 
       case LayerType.POOLING:
         throw new Error("Pooling layer not implemented yet");

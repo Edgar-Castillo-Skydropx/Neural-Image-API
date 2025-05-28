@@ -75,6 +75,21 @@ export class Matrix {
   }
 
   /**
+   * Rellena la matriz con valores aleatorios en el rango especificado
+   * @param min Valor mínimo (por defecto -1)
+   * @param max Valor máximo (por defecto 1)
+   * @returns La matriz actual para permitir encadenamiento de métodos
+   */
+  public randomize(min: number = -1, max: number = 1): Matrix {
+    for (let i = 0; i < this.rows; i++) {
+      for (let j = 0; j < this.cols; j++) {
+        this.data[i][j] = min + Math.random() * (max - min);
+      }
+    }
+    return this;
+  }
+
+  /**
    * Crea una matriz de ceros
    * @param rows Número de filas
    * @param cols Número de columnas
