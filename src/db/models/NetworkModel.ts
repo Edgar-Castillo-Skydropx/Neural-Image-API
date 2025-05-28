@@ -25,6 +25,8 @@ export interface INetworkModelDocument extends Document {
     version: string;
     trainingTime?: number;
     epochs?: number;
+    classes?: string[]; // Clases que el modelo puede clasificar
+    imageSize?: number; // Tamaño de imagen esperado (ej: 32 para 32x32)
   };
 }
 
@@ -85,6 +87,8 @@ const NetworkModelSchema = new Schema<INetworkModelDocument>(
       },
       trainingTime: Number,
       epochs: Number,
+      classes: [String], // Array de strings para las clases
+      imageSize: Number, // Número para el tamaño de imagen
     },
   },
   {

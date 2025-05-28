@@ -4,11 +4,6 @@ import { SequentialModel } from "@/neural/models/SequentialModel";
 import { ModelRepository } from "@/db/repositories/ModelRepository";
 import { TrainingRepository } from "@/db/repositories/TrainingRepository";
 import { Database } from "@/config/database";
-import fs from "fs";
-import { promisify } from "util";
-
-// Convertir fs.readFile a promesa
-const readFile = promisify(fs.readFile);
 
 /**
  * Servicio para gestionar el entrenamiento de la red neuronal
@@ -52,6 +47,7 @@ export class TrainingService implements ITrainingService {
     epochs?: number;
     learningRate?: number;
     batchSize?: number;
+    imageSize?: number;
   }): Promise<string> {
     try {
       // Validar opciones
@@ -64,6 +60,9 @@ export class TrainingService implements ITrainingService {
           "Se requiere al menos una imagen para el entrenamiento"
         );
       }
+
+      // Extraer clases únicas de las etiquetas
+      const uniqueClasses = Array.from(new Set(options.labels));
 
       // Crear registro de entrenamiento en la base de datos
       const trainingData = await this.trainingRepository.createTraining({
@@ -78,6 +77,7 @@ export class TrainingService implements ITrainingService {
           batchSize: options.batchSize || 32,
           learningRate: options.learningRate || 0.01,
           optimizer: "sgd",
+          imageSize: options.imageSize || 32,
         },
       });
 
@@ -106,9 +106,11 @@ export class TrainingService implements ITrainingService {
         model,
         options.imagePaths,
         options.labels,
+        uniqueClasses,
         options.epochs || 10,
         options.batchSize || 32,
-        options.learningRate || 0.01
+        options.learningRate || 0.01,
+        options.imageSize || 32
       );
 
       return trainingId;
@@ -124,18 +126,22 @@ export class TrainingService implements ITrainingService {
    * @param model Modelo a entrenar
    * @param imagePaths Rutas de las imágenes
    * @param labels Etiquetas correspondientes
+   * @param classes Clases únicas para clasificación
    * @param epochs Número de épocas
    * @param batchSize Tamaño del lote
    * @param learningRate Tasa de aprendizaje
+   * @param imageSize Tamaño de imagen para procesamiento
    */
   private async runTraining(
     trainingId: string,
     model: IModel,
     imagePaths: string[],
     labels: string[],
+    classes: string[],
     epochs: number,
     batchSize: number,
-    learningRate: number
+    learningRate: number,
+    imageSize: number
   ): Promise<void> {
     try {
       // Actualizar estado a "en progreso"
@@ -214,6 +220,8 @@ export class TrainingService implements ITrainingService {
             version: "1.0.0",
             trainingTime: 60, // segundos
             epochs,
+            classes, // Guardar las clases que el modelo puede clasificar
+            imageSize, // Guardar el tamaño de imagen utilizado
           },
         });
 
@@ -307,11 +315,15 @@ export class TrainingService implements ITrainingService {
    * Guarda un modelo entrenado
    * @param modelName Nombre del modelo
    * @param description Descripción opcional
+   * @param classes Clases que el modelo puede clasificar
+   * @param imageSize Tamaño de imagen esperado
    * @returns Información del modelo guardado
    */
   public async saveModel(
     modelName: string,
-    description?: string
+    description?: string,
+    classes?: string[],
+    imageSize?: number
   ): Promise<{ modelId: string }> {
     try {
       // En una implementación real, aquí se guardaría el modelo actualmente
@@ -328,6 +340,8 @@ export class TrainingService implements ITrainingService {
         },
         metadata: {
           version: "1.0.0",
+          classes, // Guardar las clases que el modelo puede clasificar
+          imageSize, // Guardar el tamaño de imagen esperado
         },
       });
 
@@ -352,6 +366,8 @@ export class TrainingService implements ITrainingService {
       accuracy?: number;
       loss?: number;
     };
+    classes?: string[];
+    imageSize?: number;
   }> {
     try {
       const model = await this.modelRepository.getModelById(modelId);
@@ -370,6 +386,8 @@ export class TrainingService implements ITrainingService {
           accuracy: model.performance.accuracy,
           loss: model.performance.loss,
         },
+        classes: model.metadata.classes,
+        imageSize: model.metadata.imageSize,
       };
     } catch (error) {
       console.error("Error al cargar modelo:", error);

@@ -1,4 +1,4 @@
-import { TrainingData, ITrainingDataDocument } from '@/db/models/TrainingData';
+import { TrainingData, ITrainingDataDocument } from "@/db/models/TrainingData";
 
 /**
  * Repositorio para gestionar operaciones con datos de entrenamiento en la base de datos
@@ -21,33 +21,34 @@ export class TrainingRepository {
       batchSize: number;
       learningRate: number;
       optimizer: string;
+      imageSize: number;
     };
   }): Promise<ITrainingDataDocument> {
     try {
       const newTraining = new TrainingData({
         name: trainingData.name,
         description: trainingData.description,
-        status: 'pending',
+        status: "pending",
         progress: 0,
-        images: trainingData.images.map(img => ({
+        images: trainingData.images.map((img) => ({
           path: img.path,
           label: img.label,
-          processed: false
+          processed: false,
         })),
         configuration: trainingData.configuration,
         results: {
           accuracy: [],
           loss: [],
           validationAccuracy: [],
-          validationLoss: []
+          validationLoss: [],
         },
-        metadata: {}
+        metadata: {},
       });
-      
+
       await newTraining.save();
       return newTraining;
     } catch (error) {
-      console.error('Error al crear registro de entrenamiento:', error);
+      console.error("Error al crear registro de entrenamiento:", error);
       throw error;
     }
   }
@@ -57,11 +58,13 @@ export class TrainingRepository {
    * @param trainingId ID del entrenamiento a obtener
    * @returns Documento del entrenamiento encontrado
    */
-  public async getTrainingById(trainingId: string): Promise<ITrainingDataDocument | null> {
+  public async getTrainingById(
+    trainingId: string
+  ): Promise<ITrainingDataDocument | null> {
     try {
       return await TrainingData.findById(trainingId);
     } catch (error) {
-      console.error('Error al obtener entrenamiento por ID:', error);
+      console.error("Error al obtener entrenamiento por ID:", error);
       throw error;
     }
   }
@@ -75,38 +78,36 @@ export class TrainingRepository {
    */
   public async updateTrainingStatus(
     trainingId: string,
-    status: 'pending' | 'in_progress' | 'completed' | 'failed',
+    status: "pending" | "in_progress" | "completed" | "failed",
     progress: number
   ): Promise<ITrainingDataDocument | null> {
     try {
       const updates: Record<string, any> = { status, progress };
-      
+
       // Si el entrenamiento está comenzando
-      if (status === 'in_progress' && progress === 0) {
-        updates['metadata.startTime'] = new Date();
+      if (status === "in_progress" && progress === 0) {
+        updates["metadata.startTime"] = new Date();
       }
-      
+
       // Si el entrenamiento ha finalizado
-      if (status === 'completed' || status === 'failed') {
+      if (status === "completed" || status === "failed") {
         const endTime = new Date();
-        updates['metadata.endTime'] = endTime;
-        
+        updates["metadata.endTime"] = endTime;
+
         // Calcular duración si hay tiempo de inicio
         const training = await TrainingData.findById(trainingId);
         if (training && training.metadata.startTime) {
           const startTime = training.metadata.startTime;
           const duration = (endTime.getTime() - startTime.getTime()) / 1000; // en segundos
-          updates['metadata.duration'] = duration;
+          updates["metadata.duration"] = duration;
         }
       }
-      
-      return await TrainingData.findByIdAndUpdate(
-        trainingId,
-        updates,
-        { new: true }
-      );
+
+      return await TrainingData.findByIdAndUpdate(trainingId, updates, {
+        new: true,
+      });
     } catch (error) {
-      console.error('Error al actualizar estado del entrenamiento:', error);
+      console.error("Error al actualizar estado del entrenamiento:", error);
       throw error;
     }
   }
@@ -133,7 +134,7 @@ export class TrainingRepository {
         { new: true }
       );
     } catch (error) {
-      console.error('Error al actualizar resultados del entrenamiento:', error);
+      console.error("Error al actualizar resultados del entrenamiento:", error);
       throw error;
     }
   }
@@ -151,11 +152,11 @@ export class TrainingRepository {
     try {
       return await TrainingData.findByIdAndUpdate(
         trainingId,
-        { 'metadata.modelId': modelId },
+        { "metadata.modelId": modelId },
         { new: true }
       );
     } catch (error) {
-      console.error('Error al asociar modelo al entrenamiento:', error);
+      console.error("Error al asociar modelo al entrenamiento:", error);
       throw error;
     }
   }
@@ -168,7 +169,7 @@ export class TrainingRepository {
     try {
       return await TrainingData.find().sort({ createdAt: -1 });
     } catch (error) {
-      console.error('Error al obtener todos los entrenamientos:', error);
+      console.error("Error al obtener todos los entrenamientos:", error);
       throw error;
     }
   }
@@ -183,7 +184,7 @@ export class TrainingRepository {
       const result = await TrainingData.deleteOne({ _id: trainingId });
       return result.deletedCount > 0;
     } catch (error) {
-      console.error('Error al eliminar entrenamiento:', error);
+      console.error("Error al eliminar entrenamiento:", error);
       throw error;
     }
   }

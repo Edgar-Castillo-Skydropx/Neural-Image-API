@@ -19,6 +19,7 @@ export interface ITrainingDataDocument extends Document {
     batchSize: number;
     learningRate: number;
     optimizer: string;
+    imageSize: number;
   };
   results: {
     accuracy: number[];
@@ -97,6 +98,11 @@ const TrainingDataSchema = new Schema<ITrainingDataDocument>(
         type: String,
         required: true,
         default: "sgd",
+      },
+      imageSize: {
+        type: Number,
+        required: true,
+        default: 32,
       },
     },
     results: {

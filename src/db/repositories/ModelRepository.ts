@@ -1,4 +1,4 @@
-import { NetworkModel, INetworkModelDocument } from '@/db/models/NetworkModel';
+import { NetworkModel, INetworkModelDocument } from "@/db/models/NetworkModel";
 
 /**
  * Repositorio para gestionar operaciones con modelos de red neuronal en la base de datos
@@ -28,12 +28,16 @@ export class ModelRepository {
       version?: string;
       trainingTime?: number;
       epochs?: number;
+      classes?: string[];
+      imageSize?: number;
     };
   }): Promise<INetworkModelDocument> {
     try {
       // Verificar si ya existe un modelo con el mismo nombre
-      const existingModel = await NetworkModel.findOne({ name: modelData.name });
-      
+      const existingModel = await NetworkModel.findOne({
+        name: modelData.name,
+      });
+
       if (existingModel) {
         // Actualizar modelo existente
         Object.assign(existingModel, {
@@ -41,12 +45,20 @@ export class ModelRepository {
           architecture: modelData.architecture,
           layers: modelData.layers,
           performance: modelData.performance || existingModel.performance,
-          'metadata.updatedAt': new Date(),
-          'metadata.version': modelData.metadata?.version || existingModel.metadata.version,
-          'metadata.trainingTime': modelData.metadata?.trainingTime || existingModel.metadata.trainingTime,
-          'metadata.epochs': modelData.metadata?.epochs || existingModel.metadata.epochs
+          "metadata.updatedAt": new Date(),
+          "metadata.version":
+            modelData.metadata?.version || existingModel.metadata.version,
+          "metadata.trainingTime":
+            modelData.metadata?.trainingTime ||
+            existingModel.metadata.trainingTime,
+          "metadata.epochs":
+            modelData.metadata?.epochs || existingModel.metadata.epochs,
+          "metadata.classes":
+            modelData.metadata?.classes || existingModel.metadata.classes,
+          "metadata.imageSize":
+            modelData.metadata?.imageSize || existingModel.metadata.imageSize,
         });
-        
+
         await existingModel.save();
         return existingModel;
       } else {
@@ -58,22 +70,24 @@ export class ModelRepository {
           layers: modelData.layers,
           performance: modelData.performance || {
             accuracy: 0,
-            loss: 0
+            loss: 0,
           },
           metadata: {
             createdAt: new Date(),
             updatedAt: new Date(),
-            version: modelData.metadata?.version || '1.0.0',
+            version: modelData.metadata?.version || "1.0.0",
             trainingTime: modelData.metadata?.trainingTime,
-            epochs: modelData.metadata?.epochs
-          }
+            epochs: modelData.metadata?.epochs,
+            classes: modelData.metadata?.classes,
+            imageSize: modelData.metadata?.imageSize,
+          },
         });
-        
+
         await newModel.save();
         return newModel;
       }
     } catch (error) {
-      console.error('Error al guardar modelo en la base de datos:', error);
+      console.error("Error al guardar modelo en la base de datos:", error);
       throw error;
     }
   }
@@ -83,11 +97,13 @@ export class ModelRepository {
    * @param modelId ID del modelo a obtener
    * @returns Documento del modelo encontrado
    */
-  public async getModelById(modelId: string): Promise<INetworkModelDocument | null> {
+  public async getModelById(
+    modelId: string
+  ): Promise<INetworkModelDocument | null> {
     try {
       return await NetworkModel.findById(modelId);
     } catch (error) {
-      console.error('Error al obtener modelo por ID:', error);
+      console.error("Error al obtener modelo por ID:", error);
       throw error;
     }
   }
@@ -97,11 +113,13 @@ export class ModelRepository {
    * @param name Nombre del modelo a obtener
    * @returns Documento del modelo encontrado
    */
-  public async getModelByName(name: string): Promise<INetworkModelDocument | null> {
+  public async getModelByName(
+    name: string
+  ): Promise<INetworkModelDocument | null> {
     try {
       return await NetworkModel.findOne({ name });
     } catch (error) {
-      console.error('Error al obtener modelo por nombre:', error);
+      console.error("Error al obtener modelo por nombre:", error);
       throw error;
     }
   }
@@ -112,9 +130,9 @@ export class ModelRepository {
    */
   public async getAllModels(): Promise<INetworkModelDocument[]> {
     try {
-      return await NetworkModel.find().sort({ 'metadata.updatedAt': -1 });
+      return await NetworkModel.find().sort({ "metadata.updatedAt": -1 });
     } catch (error) {
-      console.error('Error al obtener todos los modelos:', error);
+      console.error("Error al obtener todos los modelos:", error);
       throw error;
     }
   }
@@ -129,7 +147,7 @@ export class ModelRepository {
       const result = await NetworkModel.deleteOne({ _id: modelId });
       return result.deletedCount > 0;
     } catch (error) {
-      console.error('Error al eliminar modelo:', error);
+      console.error("Error al eliminar modelo:", error);
       throw error;
     }
   }
@@ -152,14 +170,61 @@ export class ModelRepository {
     try {
       return await NetworkModel.findByIdAndUpdate(
         modelId,
-        { 
+        {
           performance,
-          'metadata.updatedAt': new Date()
+          "metadata.updatedAt": new Date(),
         },
         { new: true }
       );
     } catch (error) {
-      console.error('Error al actualizar rendimiento del modelo:', error);
+      console.error("Error al actualizar rendimiento del modelo:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualiza los metadatos de un modelo
+   * @param modelId ID del modelo a actualizar
+   * @param metadata Metadatos actualizados
+   * @returns Documento del modelo actualizado
+   */
+  public async updateModelMetadata(
+    modelId: string,
+    metadata: {
+      version?: string;
+      trainingTime?: number;
+      epochs?: number;
+      classes?: string[];
+      imageSize?: number;
+    }
+  ): Promise<INetworkModelDocument | null> {
+    try {
+      const updateData: Record<string, any> = {
+        "metadata.updatedAt": new Date(),
+      };
+
+      // Añadir solo los campos proporcionados
+      if (metadata.version !== undefined) {
+        updateData["metadata.version"] = metadata.version;
+      }
+      if (metadata.trainingTime !== undefined) {
+        updateData["metadata.trainingTime"] = metadata.trainingTime;
+      }
+      if (metadata.epochs !== undefined) {
+        updateData["metadata.epochs"] = metadata.epochs;
+      }
+      if (metadata.classes !== undefined) {
+        updateData["metadata.classes"] = metadata.classes;
+      }
+      if (metadata.imageSize !== undefined) {
+        updateData["metadata.imageSize"] = metadata.imageSize;
+      }
+
+      return await NetworkModel.findByIdAndUpdate(modelId, updateData, {
+        new: true,
+      });
+    } catch (error) {
+      console.error("Error al actualizar metadatos del modelo:", error);
       throw error;
     }
   }
